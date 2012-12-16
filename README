@@ -13,3 +13,36 @@ RAPTORIAL|                      by Nick Black <nick.black@sprezzatech.com>
  (from The Collaborative International Dictionary of English v.0.48 [gcide])
 
 
+------------------.
+What is Raptorial?|
+------------------'
+
+Raptorial is a backwards-compatible, drop-in replacement for a collection of
+tools making up the "APT ecosystem." By unifying a number of tools in one code
+base, it is hoped that performance, documentation, and testing will be
+improved, and that a saner interface to APT actions will be presented to
+developers. An emphasis will be put on making effective use of parallel
+resources, whether they be disks or CPUs.
+
+Components include, or will include:
+
+ - libraptorial. A redesigned interface around APT facilitating rich,
+                 high-performance client applications.
+
+ - librapt. A drop-in, high-performance replacement for libapt, implemented
+            as a wrapper around libraptorial.
+
+ - rapt-get. A drop-in, high-performance replacement for apt-get, making use
+            of libraptorial.
+
+ - rapt-file. An drop-in, high-performance replacement for apt-file, making use
+            of libraptorial.
+
+ - raptitude. An ncurses-based package manager, similar in spirit to (but not
+              a drop-in replacement for) aptitude.
+
+It will also be possible to compile and link tools such as apt-get and aptitude
+against librapt (and indeed this is regularly done to test compatibility). The
+maximum performance, however, will be seen by using raptorial-native tools such
+as rapt-get and rapt-file, since certain design choices in libapt do not allow
+robust, safe, high-performance operation.
