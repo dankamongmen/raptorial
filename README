@@ -6,12 +6,8 @@ RAPTORIAL|                      by Nick Black <nick.black@sprezzatech.com>
          certain birds.
      (b) Adapted for seizing prey; -- said of the legs, claws,
          etc., of insects, birds, and other animals.
-     (c) Of or pertaining to the {Raptores}. See Illust.
-     (f) of {Aves}.
-         [1913 Webster]
 
  (from The Collaborative International Dictionary of English v.0.48 [gcide])
-
 
 ------------------.
 What is Raptorial?|
@@ -46,3 +42,16 @@ against librapt (and indeed this is regularly done to test compatibility). The
 maximum performance, however, will be seen by using raptorial-native tools such
 as rapt-get and rapt-file, since certain design choices in libapt do not allow
 robust, safe, high-performance operation.
+
+----------------.
+Similar projects|
+----------------'
+
+libept
+ http://web.mornfall.net/libept.html
+ Used by debtags, packagesearch, aptitude, synaptic, and goplay
+ Uses libapt-pkg and libxapian
+
+libapt-front
+ http://libapt-front.alioth.debian.org/
+ Superseded by libept
