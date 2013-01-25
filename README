@@ -55,3 +55,12 @@ libept
 libapt-front
  http://libapt-front.alioth.debian.org/
  Superseded by libept
+
+--------.
+Building|
+--------'
+
+If you're using a git checkout, run 'autoreconf -fis'. There's no need to do
+this for a release tarball. This will require the Autoconf tools.
+
+Run ./configure && make && make install, seasoned to taste.
