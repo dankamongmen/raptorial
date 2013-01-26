@@ -26,6 +26,9 @@ libraptorial_la_SOURCES = src/lib/packages.c
 raptorial_tester_SOURCES = src/tester/main.c
 raptorial_tester_LDADD = libraptorial.la
 
+check: $(srcdir)/tests/Packages $(bin_PROGRAMS)
+	./raptorial-tester $(srcdir)/tests/Packages
+
 %.3: $(doc_DIR)/man/man3/%.xml $(doc_DIR)/@PACKAGE_NAME@.ent
 	$(XSLTPROC) --path $(doc_DIR) -o $@ --nonet /usr/share/xml/docbook/stylesheet/docbook-xsl/manpages/docbook.xsl $<
 
