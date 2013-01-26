@@ -27,19 +27,22 @@ extern "C" {
   #endif
 #endif
 
-	struct pkgcache;
+struct pkgcache;
 
-	// Returns a new package cache object after parsing the specified
-	// package list. On error, the error value will be written through;
-	// this object is otherwise untouched.
-	PUBLIC struct pkgcache *
-	parse_packages_file(const char *,int *);
+// Returns a new package cache object after parsing the specified
+// package list. On error, the error value will be written through;
+// this object is otherwise untouched.
+PUBLIC struct pkgcache *
+parse_packages_file(const char *,int *);
 
-	// Returns a new package cache object after parsing the provided
-	// package list. On error, the error value will be written through;
-	// this object is otherwise untouched.
-	PUBLIC struct pkgcache *
-	parse_packages_mem(const void *,size_t,int *);
+// Returns a new package cache object after parsing the provided
+// package list. On error, the error value will be written through;
+// this object is otherwise untouched.
+PUBLIC struct pkgcache *
+parse_packages_mem(const void *,size_t,int *);
+
+PUBLIC void
+free_package_cache(struct pkgcache *);
 
 #ifdef __cplusplus
 }

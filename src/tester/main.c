@@ -20,6 +20,7 @@ int main(int argc,char **argv){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",argv[1],strerror(err));
 		return EXIT_FAILURE;
 	}
+	free_package_cache(pc);
 	printf("Successfully parsed %s\n",argv[1]);
 	return EXIT_SUCCESS;
 }
