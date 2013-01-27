@@ -1,29 +1,70 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <pthread.h>
+#include <blossom.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <raptorial.h>
 
+typedef struct pkgobj {
+	struct pkgobj *next;
+	char *name;
+	char *version;
+} pkgobj;
+
 typedef struct pkgcache {
-	const void *map;
-	size_t mlen;
-	int fd;
+	pkgobj *pobjs;
 } pkgcache;
 
+static void *
+parse_chunk(void *pc){
+	return pc; // FIXME
+}
+
+struct pkgparse {
+	unsigned count;
+	const void *mem;
+	size_t len;
+};
+
+static int
+parse_map(const void *mem,size_t len,int *err){
+	struct pkgparse pp = {
+		.mem = mem,
+		.len = len,
+	};
+	blossom_ctl bctl = {
+		.flags = 0,
+		.tids = 1,
+	};
+	blossom_state bs;
+
+	if(blossom_per_pe(&bctl,&bs,NULL,parse_chunk,&pp)){
+		*err = errno;
+		return -1;
+	}
+	if(blossom_join_all(&bs)){
+		*err = errno;
+		blossom_free_state(&bs);
+		return -1;
+	}
+	blossom_free_state(&bs);
+	return 0;
+}
+
 static inline pkgcache *
-create_pkgcache(int fd,const void *mem,size_t len,int *err){
+create_pkgcache(const void *mem,size_t len,int *err){
 	pkgcache *pc;
 
 	if((pc = malloc(sizeof(*pc))) == NULL){
 		*err = errno;
-	}else{
-		pc->map = mem;
-		pc->mlen = len;
-		pc->fd = fd;
+	}else if(parse_map(mem,len,err)){
+		free(pc);
+		pc = NULL;
 	}
 	return pc;
 }
@@ -72,10 +113,11 @@ parse_packages_file(const char *path,int *err){
 			return NULL;
 		}
 	}
-	if((pc = create_pkgcache(fd,map,mlen,err)) == NULL){
+	if((pc = create_pkgcache(map,mlen,err)) == NULL){
 		close(fd);
 		return NULL;
 	}
+	close(fd);
 	return pc;
 }
 
@@ -87,7 +129,7 @@ parse_packages_mem(const void *mem,size_t len,int *err){
 		*err = EINVAL;
 		return NULL;
 	}
-	if((pc = create_pkgcache(-1,mem,len,err)) == NULL){
+	if((pc = create_pkgcache(mem,len,err)) == NULL){
 		return NULL;
 	}
 	return pc;
@@ -96,9 +138,36 @@ parse_packages_mem(const void *mem,size_t len,int *err){
 PUBLIC void
 free_package_cache(pkgcache *pc){
 	if(pc){
-		if(pc->fd >= 0){
-			close(pc->fd);
-		}
 		free(pc);
 	}
+}
+
+PUBLIC pkgobj *
+pkgcache_begin(pkgcache *pc){
+	return pc->pobjs;
+}
+
+PUBLIC pkgobj *
+pkgcache_next(pkgobj *po){
+	return po->next;
+}
+
+PUBLIC const pkgobj *
+pkgcache_cbegin(const pkgcache *pc){
+	return pc->pobjs;
+}
+
+PUBLIC const pkgobj *
+pkgcache_cnext(const pkgobj *po){
+	return po->next;
+}
+
+PUBLIC const char *
+pkgcache_name(const pkgobj *po){
+	return po->name;
+}
+
+PUBLIC const char *
+pkgcache_version(const pkgobj *po){
+	return po->version;
 }

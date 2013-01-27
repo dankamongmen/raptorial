@@ -15,6 +15,10 @@ AC_C_RESTRICT
 
 AX_PTHREAD
 
+AC_CHECK_HEADERS([blossom.h], ,[AC_MSG_ERROR([Couldn't find blossom.h.])])
+AC_CHECK_LIB(blossom,blossom_pthreads, [have_libblossom=yes],
+	     [AC_MSG_ERROR([Couldn't find libblossom.])])
+	LIBS+=" -lblossom"
 
 AX_PROG_XSLTPROC
 if test "$XSLTPROC" = no ; then

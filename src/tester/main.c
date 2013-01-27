@@ -10,6 +10,7 @@ usage(const char *name){
 
 int main(int argc,char **argv){
 	struct pkgcache *pc;
+	struct pkgobj *po;
 	int err;
 
 	if(argc != 2){
@@ -19,6 +20,9 @@ int main(int argc,char **argv){
 	if((pc = parse_packages_file(argv[1],&err)) == NULL){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",argv[1],strerror(err));
 		return EXIT_FAILURE;
+	}
+	for(po = pkgcache_begin(pc) ; po ; po = pkgcache_next(po)){
+		printf("%s %s\n",pkgcache_name(po),pkgcache_version(po));
 	}
 	free_package_cache(pc);
 	printf("Successfully parsed %s\n",argv[1]);
