@@ -34,10 +34,16 @@ parse_packages_file(const char *path,int *err){
 	struct stat st;
 	pkgcache *pc;
 	size_t mlen;
-	int fd;
+	int fd,pg;
 
 	if(path == NULL){
 		*err = EINVAL;
+		return NULL;
+	}
+	// Probably ought get the largest page size; this will be the smallest
+	// on all platforms of which I'm aware. FIXME
+	if((pg = sysconf(_SC_PAGE_SIZE)) <= 0){
+		*err = errno;
 		return NULL;
 	}
 	if((fd = open(path,O_CLOEXEC)) < 0){
@@ -50,10 +56,21 @@ parse_packages_file(const char *path,int *err){
 		return NULL;
 	}
 	mlen = st.st_size;
+	if(mlen % pg != mlen / pg){
+		mlen = (mlen / pg) * pg + pg;
+	}
 	if((map = mmap(NULL,mlen,PROT_READ,MAP_SHARED|MAP_HUGETLB|MAP_POPULATE,fd,0)) == MAP_FAILED){
-		*err = errno;
-		close(fd);
-		return NULL;
+		if(errno != EINVAL){
+			*err = errno;
+			close(fd);
+			return NULL;
+		}
+		// Try again without MAP_HUGETLB
+		if((map = mmap(NULL,mlen,PROT_READ,MAP_SHARED|MAP_POPULATE,fd,0)) == MAP_FAILED){
+			*err = errno;
+			close(fd);
+			return NULL;
+		}
 	}
 	if((pc = create_pkgcache(fd,map,mlen,err)) == NULL){
 		close(fd);
