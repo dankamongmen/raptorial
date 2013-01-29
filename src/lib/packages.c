@@ -20,17 +20,42 @@ typedef struct pkgcache {
 	pkgobj *pobjs;
 } pkgcache;
 
-static void *
-parse_chunk(void *pc){
-	return pc; // FIXME
-}
-
 struct pkgparse {
 	unsigned count;
 	const void *mem;
-	size_t len;
+	size_t len,csize;
 };
 
+// Threads handle chunks of the packages list. Since we don't know where 
+// package definitions are split in the list data, we'll usually toss some data
+// from the front (it was handled as part of another chunk), and grab some
+// extra data from the back. These will typically be small amounts, and the
+// data is read-only, so rather than track splits (requiring synchronization), 
+// we just always locally discover the bounds (put another way, the overlapping
+// areas at the front and back of chunks are lexed twice).
+typedef struct pkgchunk {
+	size_t offset;
+	const struct pkgparse *pp;
+} pkgchunk;
+
+static void *
+parse_chunk(void *vpc){
+	const char *start,*c,*end;
+	const pkgchunk *pc = vpc;
+
+	start = (const char *)pc->pp->mem + pc->offset;
+	if(pc->pp->csize + pc->offset > pc->pp->len){
+		end = start + (pc->pp->len - pc->offset);
+	}else{
+		end = start + pc->pp->csize;
+	}
+	for(c = start ; c < end ; ++c){
+		// FIXME
+	}
+	return vpc;
+}
+
+// len is the true length, less than or equal to the mapped length.
 static int
 parse_map(const void *mem,size_t len,int *err){
 	struct pkgparse pp = {
@@ -72,9 +97,9 @@ create_pkgcache(const void *mem,size_t len,int *err){
 PUBLIC pkgcache *
 parse_packages_file(const char *path,int *err){
 	const void *map;
+	size_t mlen,len;
 	struct stat st;
 	pkgcache *pc;
-	size_t mlen;
 	int fd,pg;
 
 	if(path == NULL){
@@ -96,7 +121,7 @@ parse_packages_file(const char *path,int *err){
 		close(fd);
 		return NULL;
 	}
-	mlen = st.st_size;
+	mlen = len = st.st_size;
 	if(mlen % pg != mlen / pg){
 		mlen = (mlen / pg) * pg + pg;
 	}
@@ -113,7 +138,7 @@ parse_packages_file(const char *path,int *err){
 			return NULL;
 		}
 	}
-	if((pc = create_pkgcache(map,mlen,err)) == NULL){
+	if((pc = create_pkgcache(map,len,err)) == NULL){
 		close(fd);
 		return NULL;
 	}
