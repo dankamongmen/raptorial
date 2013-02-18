@@ -11,6 +11,7 @@ usage(const char *name){
 int main(int argc,char **argv){
 	struct pkgcache *pc;
 	struct pkgobj *po;
+	unsigned pkgs;
 	int err;
 
 	if(argc != 2){
@@ -21,10 +22,13 @@ int main(int argc,char **argv){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",argv[1],strerror(err));
 		return EXIT_FAILURE;
 	}
+	pkgs = 0;
 	for(po = pkgcache_begin(pc) ; po ; po = pkgcache_next(po)){
 		printf("%s %s\n",pkgcache_name(po),pkgcache_version(po));
+		++pkgs;
 	}
 	free_package_cache(pc);
-	printf("Successfully parsed %s\n",argv[1]);
+	printf("Successfully parsed %s (%u package%s)\n",argv[1],
+			pkgs,pkgs == 1 ? "" : "s");
 	return EXIT_SUCCESS;
 }
