@@ -1,7 +1,9 @@
 #include <errno.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <blossom.h>
@@ -39,20 +41,64 @@ typedef struct pkgchunk {
 } pkgchunk;
 
 static void *
-parse_chunk(void *vpc){
+parse_chunk(void *vpp){
 	const char *start,*c,*end;
-	const pkgchunk *pc = vpc;
+	const pkgchunk pc = {
+		.pp = vpp,
+		.offset = 0, // FIXME
+	};
+	unsigned packages = 0;
+	int state;
 
-	start = (const char *)pc->pp->mem + pc->offset;
-	if(pc->pp->csize + pc->offset > pc->pp->len){
-		end = start + (pc->pp->len - pc->offset);
+	start = (const char *)pc.pp->mem + pc.offset;
+	if(pc.pp->csize + pc.offset > pc.pp->len){
+		end = start + (pc.pp->len - pc.offset);
 	}else{
-		end = start + pc->pp->csize;
+		end = start + pc.pp->csize;
 	}
-	for(c = start ; c < end ; ++c){
-		// FIXME
+	// First, find the start of our chunk:
+	//  - If we are offset 0, we are at the start of our chunk
+	//  - Otherwise, if the previous two characters (those preceding our
+	//     chunk) are newlines, we are at the start of our chunk,
+	//  - Otherwise, if the first character is a newline, and the previous
+	//     character is a newline, we are at the start of our chunk
+	//  - Otherwise, our chunk starts at the first double newline
+	if(pc.offset){
+		// We can be in one of two states: we know the previous
+		// character to have been a newline, or we don't.
+		state = 0;
+		assert(pc.pp->csize > 2); // sanity check
+		for(c = start - 2 ; c < end ; ++c){
+			if(*c == '\n'){
+				if(state){
+					++c;
+					break;
+				}
+				state = 1;
+			}else{
+				state = 0;
+			}
+		}
+	}else{
+		c = start;
 	}
-	return vpc;
+	// We are at the beginning of our chunk, which might be 0 bytes.
+	state = 2; // number of newlines we've seen, bounded by 2
+	while(c < end){
+		// Skip leading newlines
+		if(*c == '\n'){
+			if(++state > 2){
+				state = 2;
+			}else if(state == 2){
+				// Package ended!
+				++packages;
+			}
+		}else{
+			state = 0;
+		}
+		++c;
+	}
+	return vpp;
 }
 
 // len is the true length, less than or equal to the mapped length.
@@ -61,6 +107,7 @@ parse_map(const void *mem,size_t len,int *err){
 	struct pkgparse pp = {
 		.mem = mem,
 		.len = len,
+		.csize = len, // FIXME
 	};
 	blossom_ctl bctl = {
 		.flags = 0,
