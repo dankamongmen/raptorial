@@ -1,5 +1,0 @@
-<!ENTITY dhfirstname "Nick">
-<!ENTITY dhsurname "Black">
-<!ENTITY dhemail "nick.black@sprezzatech.com">
-<!ENTITY dhusername "&dhfirstname; &dhsurname;">
-<!ENTITY dhrelease "0.0.1-pre">
