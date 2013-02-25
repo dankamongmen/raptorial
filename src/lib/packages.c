@@ -26,6 +26,7 @@ struct pkgparse {
 	unsigned count;
 	const void *mem;
 	size_t len,csize;
+	pthread_mutex_t lock;
 };
 
 // Threads handle chunks of the packages list. Since we don't know where 
@@ -37,17 +38,36 @@ struct pkgparse {
 // areas at the front and back of chunks are lexed twice).
 typedef struct pkgchunk {
 	size_t offset;
-	const struct pkgparse *pp;
+	struct pkgparse *pp;
 } pkgchunk;
+
+static void
+free_package(pkgobj *po){
+	free(po->version);
+	free(po->name);
+	free(po);
+}
+
+static pkgobj *
+create_package(void){
+	pkgobj *po;
+
+	if( (po = malloc(sizeof(*po))) ){
+		po->version = NULL;
+		po->name = NULL;
+	}
+	return po;
+}
 
 static void *
 parse_chunk(void *vpp){
 	const char *start,*c,*end;
-	const pkgchunk pc = {
+	pkgchunk pc = {
 		.pp = vpp,
 		.offset = 0, // FIXME
 	};
 	unsigned packages = 0;
+	pkgobj *head,*po;
 	int state;
 
 	start = (const char *)pc.pp->mem + pc.offset;
@@ -82,14 +102,17 @@ parse_chunk(void *vpp){
 	}else{
 		c = start;
 	}
+	head = NULL;
 	// We are at the beginning of our chunk, which might be 0 bytes.
 	state = 2; // number of newlines we've seen, bounded by 2
 	while(c < end){
 		// Skip leading newlines
 		if(*c == '\n'){
-			if(++state > 2){
+			if(++state >= 2){
 				state = 2;
-			}else if(state == 2){
+				if((po = create_package()) == NULL){
+					goto err;
+				}
 				// Package ended!
 				++packages;
 			}
@@ -98,7 +121,16 @@ parse_chunk(void *vpp){
 		}
 		++c;
 	}
+	pthread_mutex_lock(&pc.pp->lock);
+	pthread_mutex_unlock(&pc.pp->lock);
 	return vpp;
+
+err:
+	while( (po = head) ){
+		head = po->next;
+		free_package(po);
+	}
+	return NULL;
 }
 
 // len is the true length, less than or equal to the mapped length.
@@ -114,17 +146,28 @@ parse_map(const void *mem,size_t len,int *err){
 		.tids = 1,
 	};
 	blossom_state bs;
+	int r;
 
+	if( (r = pthread_mutex_init(&pp.lock,NULL)) ){
+		*err = r;
+		return -1;
+	}
 	if(blossom_per_pe(&bctl,&bs,NULL,parse_chunk,&pp)){
 		*err = errno;
+		pthread_mutex_destroy(&pp.lock);
 		return -1;
 	}
 	if(blossom_join_all(&bs)){
 		*err = errno;
 		blossom_free_state(&bs);
+		pthread_mutex_destroy(&pp.lock);
 		return -1;
 	}
 	blossom_free_state(&bs);
+	if((r = pthread_mutex_destroy(&pp.lock))){
+		*err = r;
+		return -1;
+	}
 	return 0;
 }
 
