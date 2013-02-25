@@ -1,9 +1,12 @@
+ar-lib
+compile
 config.guess
 config.log
 config.status
 config.sub
 configure
 depcomp
+doc/raptorial.ent
 install-sh
 libraptorial.3
 libraptorial.la
