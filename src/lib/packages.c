@@ -20,6 +20,7 @@ typedef struct pkgobj {
 
 typedef struct pkgcache {
 	pkgobj *pobjs;
+	unsigned pcount;
 } pkgcache;
 
 struct pkgparse {
@@ -27,6 +28,7 @@ struct pkgparse {
 	const void *mem;
 	size_t len,csize;
 	pthread_mutex_t lock;
+	pkgcache *sharedpcache;
 };
 
 // Threads handle chunks of the packages list. Since we don't know where 
@@ -67,7 +69,7 @@ parse_chunk(void *vpp){
 		.offset = 0, // FIXME
 	};
 	unsigned packages = 0;
-	pkgobj *head,*po;
+	pkgobj *head,*po,**enq;
 	int state;
 
 	start = (const char *)pc.pp->mem + pc.offset;
@@ -102,6 +104,7 @@ parse_chunk(void *vpp){
 	}else{
 		c = start;
 	}
+	enq = &head;
 	head = NULL;
 	// We are at the beginning of our chunk, which might be 0 bytes.
 	state = 2; // number of newlines we've seen, bounded by 2
@@ -115,6 +118,8 @@ parse_chunk(void *vpp){
 				}
 				// Package ended!
 				++packages;
+				*enq = po;
+				enq = &po->next;
 			}
 		}else{
 			state = 0;
@@ -122,6 +127,8 @@ parse_chunk(void *vpp){
 		++c;
 	}
 	pthread_mutex_lock(&pc.pp->lock);
+	// FIXME move our list to main list
+		pc.pp->sharedpcache->pcount += packages;
 	pthread_mutex_unlock(&pc.pp->lock);
 	return vpp;
 
@@ -135,11 +142,12 @@ err:
 
 // len is the true length, less than or equal to the mapped length.
 static int
-parse_map(const void *mem,size_t len,int *err){
+parse_map(pkgcache *pc,const void *mem,size_t len,int *err){
 	struct pkgparse pp = {
 		.mem = mem,
 		.len = len,
 		.csize = len, // FIXME
+		.sharedpcache = pc,
 	};
 	blossom_ctl bctl = {
 		.flags = 0,
@@ -177,9 +185,12 @@ create_pkgcache(const void *mem,size_t len,int *err){
 
 	if((pc = malloc(sizeof(*pc))) == NULL){
 		*err = errno;
-	}else if(parse_map(mem,len,err)){
-		free(pc);
-		pc = NULL;
+	}else{
+		memset(pc,0,sizeof(*pc));
+		if(parse_map(pc,mem,len,err)){
+			free(pc);
+			return NULL;
+		}
 	}
 	return pc;
 }
@@ -285,4 +296,9 @@ pkgcache_name(const pkgobj *po){
 PUBLIC const char *
 pkgcache_version(const pkgobj *po){
 	return po->version;
+}
+
+PUBLIC unsigned
+pkgcache_count(const pkgcache *po){
+	return po->pcount;
 }

@@ -64,6 +64,9 @@ pkgcache_name(const struct pkgobj *);
 PUBLIC const char *
 pkgcache_version(const struct pkgobj *);
 
+PUBLIC unsigned
+pkgcache_count(const struct pkgcache *);
+
 #ifdef __cplusplus
 }
 #endif
