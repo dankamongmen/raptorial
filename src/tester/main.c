@@ -23,6 +23,7 @@ int main(int argc,char **argv){
 		return EXIT_FAILURE;
 	}
 	pkgs = 0;
+	printf("Reported package count: %u\n",pkgcache_count(pc));
 	for(po = pkgcache_begin(pc) ; po ; po = pkgcache_next(po)){
 		printf("%s %s\n",pkgcache_name(po),pkgcache_version(po));
 		++pkgs;
