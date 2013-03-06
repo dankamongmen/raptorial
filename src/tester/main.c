@@ -28,6 +28,11 @@ int main(int argc,char **argv){
 		printf("%s %s\n",pkgcache_name(po),pkgcache_version(po));
 		++pkgs;
 	}
+	if(pkgs != pkgcache_count(pc)){
+		fprintf(stderr,"Package count was inaccurate (%u != %u)\n",
+				pkgs,pkgcache_count(pc));
+		return EXIT_FAILURE;
+	}
 	free_package_cache(pc);
 	printf("Successfully parsed %s (%u package%s)\n",argv[1],
 			pkgs,pkgs == 1 ? "" : "s");
