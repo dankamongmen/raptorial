@@ -61,6 +61,9 @@ create_package(void){
 	return po;
 }
 
+// We're not treating the input as anything but ASCII text, though it's almost
+// certainly UTF8. Need to ensure that newlines and pattern tags are all
+// strictly ASCII or change how we handle things FIXME.
 static void *
 parse_chunk(void *vpp){
 	const char *start,*c,*end;
@@ -124,8 +127,12 @@ parse_chunk(void *vpp){
 				*enq = po;
 				enq = &po->next;
 			}else{ // We processed a line of the current package
+				if((size_t)(c - start) >= strlen("Package:")){
+					if(strncmp(start,"Package:",strlen("Package:")) == 0){
 				fprintf(stderr,"LINE: %*.*s\n",(int)(c - start),
 						(int)(c - start),start);
+					}
+				}
 			}
 		}else{ // not a newline
 			if(state){
