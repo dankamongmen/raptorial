@@ -129,6 +129,8 @@ parse_chunk(void *vpp){
 	pthread_mutex_lock(&pc.pp->lock);
 	// FIXME move our list to main list
 		pc.pp->sharedpcache->pcount += packages;
+		*enq = pc.pp->sharedpcache->pobjs;
+		pc.pp->sharedpcache->pobjs = head;
 	pthread_mutex_unlock(&pc.pp->lock);
 	return vpp;
 
