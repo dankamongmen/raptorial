@@ -146,9 +146,14 @@ parse_chunk(void *vpp){
 				enq = &po->next;
 				pname = NULL;
 			}else{ // We processed a line of the current package
-				if(delim){
+				if(delim){ // Was line delimited?
 					if((size_t)(c - start) >= strlen("Package:")){
 						if(strncmp(start,"Package:",strlen("Package:")) == 0){
+// Don't allow a package to be named twice. Defined another way, require
+// an empty line between every two instances of a Package: line.
+							if(pname){
+								goto err;
+							}
 							pnamelen = c - delim;
 							pname = delim;
 						}
