@@ -78,6 +78,8 @@ parse_chunk(void *vpp){
 	}else{
 		end = start + pc.pp->csize;
 	}
+
+
 	// First, find the start of our chunk:
 	//  - If we are offset 0, we are at the start of our chunk
 	//  - Otherwise, if the previous two characters (those preceding our
@@ -104,14 +106,15 @@ parse_chunk(void *vpp){
 	}else{
 		c = start;
 	}
+
+
 	enq = &head;
 	head = NULL;
 	// We are at the beginning of our chunk, which might be 0 bytes. Any
 	// partial record with which our map started has been skipped
 	state = 2; // number of newlines we've seen, bounded by 2
 	while(c < end){
-		// Skip leading newlines
-		if(*c == '\n'){
+		if(*c == '\n'){ // State machine is driven by newlines
 			if(++state == 2){
 				if((po = create_package()) == NULL){
 					goto err;
@@ -120,10 +123,12 @@ parse_chunk(void *vpp){
 				++packages;
 				*enq = po;
 				enq = &po->next;
-				fprintf(stderr,"START: [%20.20s]\n",start);
+			}else{ // We processed a line of the current package
+				fprintf(stderr,"LINE: %*.*s\n",(int)(c - start),
+						(int)(c - start),start);
 			}
 		}else{ // not a newline
-			if(state >= 2){
+			if(state){
 				start = c;
 			}
 			state = 0;
@@ -132,8 +137,7 @@ parse_chunk(void *vpp){
 	}
 	// FIXME if we're in the middle of a record, we read into the next map
 	// (hence why we skipped one if we started in media res)
-	pthread_mutex_lock(&pc.pp->lock);
-	// FIXME move our list to main list
+	pthread_mutex_lock(&pc.pp->lock); // Success!
 		pc.pp->sharedpcache->pcount += packages;
 		*enq = pc.pp->sharedpcache->pobjs;
 		pc.pp->sharedpcache->pobjs = head;
