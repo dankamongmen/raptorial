@@ -66,7 +66,7 @@ create_package(void){
 // strictly ASCII or change how we handle things FIXME.
 static void *
 parse_chunk(void *vpp){
-	const char *start,*c,*end;
+	const char *start,*c,*end,*delim;
 	pkgchunk pc = {
 		.pp = vpp,
 		.offset = 0, // FIXME
@@ -116,6 +116,7 @@ parse_chunk(void *vpp){
 	// We are at the beginning of our chunk, which might be 0 bytes. Any
 	// partial record with which our map started has been skipped
 	state = 2; // number of newlines we've seen, bounded by 2
+	delim = NULL; // Point at possible field delimiter for each line
 	while(c < end){
 		if(*c == '\n'){ // State machine is driven by newlines
 			if(++state == 2){
@@ -127,16 +128,22 @@ parse_chunk(void *vpp){
 				*enq = po;
 				enq = &po->next;
 			}else{ // We processed a line of the current package
-				if((size_t)(c - start) >= strlen("Package:")){
-					if(strncmp(start,"Package:",strlen("Package:")) == 0){
-				fprintf(stderr,"LINE: %*.*s\n",(int)(c - start),
-						(int)(c - start),start);
+				if(delim){
+					if((size_t)(c - start) >= strlen("Package:")){
+						if(strncmp(start,"Package:",strlen("Package:")) == 0){
+					fprintf(stderr,"LINE: %*.*s\n",(int)(c - delim),
+							(int)(c - delim),delim);
+						}
 					}
 				}
 			}
 		}else{ // not a newline
 			if(state){
+				delim = NULL;
 				start = c;
+			}
+			if(*c == ':'){
+				delim = c;
 			}
 			state = 0;
 		}
