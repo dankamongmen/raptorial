@@ -1,3 +1,4 @@
+#include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -116,7 +117,10 @@ parse_chunk(void *vpp){
 	// We are at the beginning of our chunk, which might be 0 bytes. Any
 	// partial record with which our map started has been skipped
 	state = 2; // number of newlines we've seen, bounded by 2
-	delim = NULL; // Point at possible field delimiter for each line
+	// Upon reaching the (optional, only one allowed) delimiter on each
+	// line, delim will be updated to point one past that delimiter (which
+	// might be outside the chunk!), and to chew whitespace.
+	delim = NULL;
 	while(c < end){
 		if(*c == '\n'){ // State machine is driven by newlines
 			if(++state == 2){
@@ -141,11 +145,15 @@ parse_chunk(void *vpp){
 			if(state){
 				delim = NULL;
 				start = c;
+				state = 0;
 			}
-			if(*c == ':'){
-				delim = c;
+			if(isspace(*c)){
+				if(c == delim){
+					++delim;
+				}
+			}else if(*c == ':'){
+				delim = c + 1;
 			}
-			state = 0;
 		}
 		++c;
 	}
