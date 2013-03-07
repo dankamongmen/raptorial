@@ -52,12 +52,17 @@ free_package(pkgobj *po){
 }
 
 static pkgobj *
-create_package(void){
+create_package(const char *name,size_t namelen){
 	pkgobj *po;
 
 	if( (po = malloc(sizeof(*po))) ){
 		po->version = NULL;
-		po->name = NULL;
+		if((po->name = malloc(namelen + 1)) == NULL){
+			free(po);
+			return NULL;
+		}
+		strncpy(po->name,name,namelen);
+		po->name[namelen] = '\0';
 	}
 	return po;
 }
@@ -67,13 +72,14 @@ create_package(void){
 // strictly ASCII or change how we handle things FIXME.
 static void *
 parse_chunk(void *vpp){
-	const char *start,*c,*end,*delim;
+	const char *start,*c,*end,*delim,*pname;
 	pkgchunk pc = {
 		.pp = vpp,
 		.offset = 0, // FIXME
 	};
 	unsigned packages = 0;
 	pkgobj *head,*po,**enq;
+	size_t pnamelen;
 	int state;
 
 	start = (const char *)pc.pp->mem + pc.offset;
@@ -121,22 +127,30 @@ parse_chunk(void *vpp){
 	// line, delim will be updated to point one past that delimiter (which
 	// might be outside the chunk!), and to chew whitespace.
 	delim = NULL;
+	// We hand create_package our raw map bytes; it allocates the destbuf.
+	// These are thus reset on each package.
+	pname = NULL;
+	pnamelen = 0;
 	while(c < end){
 		if(*c == '\n'){ // State machine is driven by newlines
 			if(++state == 2){
-				if((po = create_package()) == NULL){
+				if(pname == NULL || pnamelen == 0){
+					goto err; // No package name
+				}
+				if((po = create_package(pname,pnamelen)) == NULL){
 					goto err;
 				}
 				// Package ended!
 				++packages;
 				*enq = po;
 				enq = &po->next;
+				pname = NULL;
 			}else{ // We processed a line of the current package
 				if(delim){
 					if((size_t)(c - start) >= strlen("Package:")){
 						if(strncmp(start,"Package:",strlen("Package:")) == 0){
-					fprintf(stderr,"LINE: %*.*s\n",(int)(c - delim),
-							(int)(c - delim),delim);
+							pnamelen = c - delim;
+							pname = delim;
 						}
 					}
 				}
