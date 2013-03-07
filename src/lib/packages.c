@@ -106,13 +106,13 @@ parse_chunk(void *vpp){
 	}
 	enq = &head;
 	head = NULL;
-	// We are at the beginning of our chunk, which might be 0 bytes.
+	// We are at the beginning of our chunk, which might be 0 bytes. Any
+	// partial record with which our map started has been skipped
 	state = 2; // number of newlines we've seen, bounded by 2
 	while(c < end){
 		// Skip leading newlines
 		if(*c == '\n'){
-			if(++state >= 2){
-				state = 2;
+			if(++state == 2){
 				if((po = create_package()) == NULL){
 					goto err;
 				}
@@ -120,12 +120,18 @@ parse_chunk(void *vpp){
 				++packages;
 				*enq = po;
 				enq = &po->next;
+				fprintf(stderr,"START: [%20.20s]\n",start);
 			}
-		}else{
+		}else{ // not a newline
+			if(state >= 2){
+				start = c;
+			}
 			state = 0;
 		}
 		++c;
 	}
+	// FIXME if we're in the middle of a record, we read into the next map
+	// (hence why we skipped one if we started in media res)
 	pthread_mutex_lock(&pc.pp->lock);
 	// FIXME move our list to main list
 		pc.pp->sharedpcache->pcount += packages;
