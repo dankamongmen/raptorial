@@ -52,15 +52,21 @@ free_package(pkgobj *po){
 }
 
 static pkgobj *
-create_package(const char *name,size_t namelen){
+create_package(const char *name,size_t namelen,const char *ver,size_t verlen){
 	pkgobj *po;
 
 	if( (po = malloc(sizeof(*po))) ){
-		po->version = NULL;
-		if((po->name = malloc(namelen + 1)) == NULL){
+		if((po->version = malloc(sizeof(*po->version) * (verlen + 1))) == NULL){
 			free(po);
 			return NULL;
 		}
+		if((po->name = malloc(sizeof(*po->name) * (namelen + 1))) == NULL){
+			free(po->version);
+			free(po);
+			return NULL;
+		}
+		strncpy(po->version,ver,verlen);
+		po->version[verlen] = '\0';
 		strncpy(po->name,name,namelen);
 		po->name[namelen] = '\0';
 	}
@@ -72,14 +78,14 @@ create_package(const char *name,size_t namelen){
 // strictly ASCII or change how we handle things FIXME.
 static void *
 parse_chunk(void *vpp){
-	const char *start,*c,*end,*delim,*pname;
+	const char *start,*c,*end,*delim,*pname,*pver;
 	pkgchunk pc = {
 		.pp = vpp,
 		.offset = 0, // FIXME
 	};
 	unsigned packages = 0;
 	pkgobj *head,*po,**enq;
-	size_t pnamelen;
+	size_t pnamelen,pverlen;
 	int state;
 
 	start = (const char *)pc.pp->mem + pc.offset;
@@ -129,15 +135,18 @@ parse_chunk(void *vpp){
 	delim = NULL;
 	// We hand create_package our raw map bytes; it allocates the destbuf.
 	// These are thus reset on each package.
-	pname = NULL;
-	pnamelen = 0;
+	pname = NULL; pver = NULL;
+	pnamelen = 0; pverlen = 0;
 	while(c < end){
 		if(*c == '\n'){ // State machine is driven by newlines
 			if(++state == 2){
 				if(pname == NULL || pnamelen == 0){
 					goto err; // No package name
 				}
-				if((po = create_package(pname,pnamelen)) == NULL){
+				if(pver == NULL || pverlen == 0){
+					goto err; // No package version
+				}
+				if((po = create_package(pname,pnamelen,pver,pverlen)) == NULL){
 					goto err;
 				}
 				// Package ended!
@@ -145,6 +154,7 @@ parse_chunk(void *vpp){
 				*enq = po;
 				enq = &po->next;
 				pname = NULL;
+				pver = NULL;
 			}else{ // We processed a line of the current package
 				if(delim){ // Was line delimited?
 					if((size_t)(c - start) >= strlen("Package:")){
@@ -156,6 +166,12 @@ parse_chunk(void *vpp){
 							}
 							pnamelen = c - delim;
 							pname = delim;
+						}else if(strncmp(start,"Version:",strlen("Version:")) == 0){
+							if(pver){
+								goto err;
+							}
+							pverlen = c - delim;
+							pver = delim;
 						}
 					}
 				}
