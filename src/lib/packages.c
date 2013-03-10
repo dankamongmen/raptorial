@@ -182,11 +182,9 @@ parse_chunk(void *vpp){
 			if(*c == '\n'){ // State machine is driven by newlines
 				if(state == STATE_NLINE){ // double newline
 					if(pname == NULL || pnamelen == 0){
-						fprintf(stderr,"No package name\n");
 						goto err; // No package name
 					}
 					if(pver == NULL || pverlen == 0){
-						fprintf(stderr,"No package version\n");
 						goto err; // No package version
 					}
 					if((po = create_package(pname,pnamelen,pver,pverlen)) == NULL){
