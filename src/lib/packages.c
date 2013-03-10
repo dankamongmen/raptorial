@@ -444,7 +444,7 @@ parse_packages_dir(const char *dir,int *err){
 		if(pdent == NULL){
 			if(closedir(d)){
 				*err = errno;
-				// FIXME free partial lists
+				free_package_cache(pc);
 				return NULL;
 			}
 			return pc;
@@ -461,7 +461,7 @@ parse_packages_dir(const char *dir,int *err){
 				// away (leaks) results thus far to get new ones.
 				if((pc = parse_packages_file(dent.d_name,err)) == NULL){
 					closedir(d);
-					// FIXME free partial lists
+					free_package_cache(pc);
 					return NULL;
 				}
 				break;
@@ -469,6 +469,7 @@ parse_packages_dir(const char *dir,int *err){
 		}
 	}
 	*err = errno;
+	free_package_cache(pc);
 	closedir(d);
 	return pc;
 }
