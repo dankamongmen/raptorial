@@ -441,6 +441,8 @@ parse_packages_dir(const char *dir,int *err){
 		return NULL;
 	}
 	while(readdir_r(d,&dent,&pdent) == 0){
+		const char *suffixes[] = { "Sources", "Packages", NULL },**suffix;
+
 		if(pdent == NULL){
 			if(closedir(d)){
 				*err = errno;
@@ -449,15 +451,23 @@ parse_packages_dir(const char *dir,int *err){
 			}
 			return pc;
 		}
-		// FIXME want a non-destructive union operation. this throws
-		// away (leaks) results thus far to get new ones.
 		if(dent.d_type != DT_REG && dent.d_type != DT_LNK){
 			continue; // FIXME maybe don't skip DT_UNKNOWN?
 		}
-		if((pc = parse_packages_file(dent.d_name,err)) == NULL){
-			closedir(d);
-			// FIXME free partial lists
-			return NULL;
+		for(suffix = suffixes ; *suffix ; ++suffix){
+			if(strlen(dent.d_name) < strlen(*suffix)){
+				continue;
+			}
+			if(strcmp(dent.d_name + strlen(dent.d_name) - strlen(*suffix),*suffix) == 0){
+				// FIXME want a non-destructive union operation. this throws
+				// away (leaks) results thus far to get new ones.
+				if((pc = parse_packages_file(dent.d_name,err)) == NULL){
+					closedir(d);
+					// FIXME free partial lists
+					return NULL;
+				}
+				break;
+			}
 		}
 	}
 	*err = errno;
