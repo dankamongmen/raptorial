@@ -272,7 +272,6 @@ parse_chunk(void *vpp){
 	return vpp;
 
 err:
-	assert(0); // FIXME remove once return values are checked in pthread_join
 	while( (po = head) ){
 		head = po->next;
 		free_package(po);
@@ -306,9 +305,13 @@ parse_map(pkgcache *pc,const void *mem,size_t len,int *err){
 		pthread_mutex_destroy(&pp.lock);
 		return -1;
 	}
-	// FIXME need check all return values and ensure they're non-NULL
 	if(blossom_join_all(&bs)){
 		*err = errno;
+		blossom_free_state(&bs);
+		pthread_mutex_destroy(&pp.lock);
+		return -1;
+	}
+	if(blossom_validate_joinrets(&bs)){
 		blossom_free_state(&bs);
 		pthread_mutex_destroy(&pp.lock);
 		return -1;
