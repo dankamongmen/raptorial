@@ -6,7 +6,7 @@
 #include <raptorial.h>
 
 #define STATUSFILE_DEFAULT "/var/lib/dpkg/status"
-#define LISTDIR_DEFAULT "/var/state/apt/lists"
+#define LISTDIR_DEFAULT "/var/lib/apt/lists"
 
 static void
 usage(FILE *out,const char *name){
