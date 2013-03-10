@@ -37,6 +37,9 @@ Components include, or will include:
  - raptitude. An ncurses-based package manager, similar in spirit to (but not
               a drop-in replacement for) aptitude.
 
+ - rapt-show-versions. A drop-in, high-performance replacement for
+            apt-show-versions, making use of libraptorial.
+
 It will also be possible to compile and link tools such as apt-get and aptitude
 against librapt (and indeed this is regularly done to test compatibility). The
 maximum performance, however, will be seen by using raptorial-native tools such
@@ -64,3 +67,10 @@ If you're using a git checkout, run 'autoreconf -fis'. There's no need to do
 this for a release tarball. This will require the Autoconf tools.
 
 Run ./configure && make && make install, seasoned to taste.
+
+-------------------------------.
+Differences from standard tools|
+-------------------------------'
+
+rapt-show-versions neither requires nor makes use of the apt-show-versions
+cache. The -i/--initialize option is neither required nor supported.
