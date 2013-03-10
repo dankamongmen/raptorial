@@ -94,7 +94,7 @@ get_new_offset(struct pkgparse *pp){
 // strictly ASCII or change how we handle things FIXME.
 static void *
 parse_chunk(void *vpp){
-	const char *start,*c,*end,*delim,*pname,*pver;
+	const char *start,*c,*end,*delim,*pname,*pver,*veryend;
 	struct pkgparse *pp = vpp;
 	size_t offset = 0; // FIXME
 	unsigned packages = 0;
@@ -104,6 +104,9 @@ parse_chunk(void *vpp){
 
 	head = NULL;
 	offset = get_new_offset(pp);
+	// We can go past the end of our chunk to finish a package's parsing
+	// in media res, but we can't go past the end of the actual map!
+	veryend = (const char *)pp->mem + pp->len;
 	while(offset < pp->len){
 		start = (const char *)pp->mem + offset;
 		if(pp->csize + offset > pp->len){
@@ -151,7 +154,7 @@ parse_chunk(void *vpp){
 		// These are thus reset on each package.
 		pname = NULL; pver = NULL;
 		pnamelen = 0; pverlen = 0;
-		while(c < end){
+		while(c < end || (state < 2 && c < veryend)){
 			if(*c == '\n'){ // State machine is driven by newlines
 				if(++state == 2){
 					if(pname == NULL || pnamelen == 0){
@@ -205,6 +208,9 @@ parse_chunk(void *vpp){
 				}
 			}
 			++c;
+		}
+		if(state < 2){
+			goto err; // map ended in the middle of a package
 		}
 		offset = get_new_offset(pp);
 	}
