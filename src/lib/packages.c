@@ -295,8 +295,6 @@ parse_chunk(void *vpp){
 		}
 		offset = get_new_offset(pp);
 	}
-	// FIXME if we're in the middle of a record, we read into the next map
-	// (hence why we skipped one if we started in media res)
 	if(head){
 		pthread_mutex_lock(&pp->lock); // Success!
 			pp->sharedpcache->pcount += packages;
