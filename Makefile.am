@@ -18,13 +18,16 @@ doc_DATA+=README
 dist_doc_DATA=
 dist_doc_DATA+=COPYING libraptorial.xhtml
 
-bin_PROGRAMS=raptorial-tester
+bin_PROGRAMS=raptorial-tester rapt-show-versions
 
 lib_LTLIBRARIES = libraptorial.la
 libraptorial_la_SOURCES = src/lib/packages.c
      
 raptorial_tester_SOURCES = src/tester/main.c
 raptorial_tester_LDADD = libraptorial.la
+
+rapt_show_versions_SOURCES = src/bin/rapt-show-versions.c
+rapt_show_versions_LDADD = libraptorial.la
 
 check: $(srcdir)/tests/Packages $(bin_PROGRAMS)
 	./raptorial-tester $(srcdir)/tests/Packages
