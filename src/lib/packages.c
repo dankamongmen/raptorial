@@ -426,20 +426,36 @@ parse_packages_file(const char *path,int *err){
 
 PUBLIC pkgcache *
 parse_packages_dir(const char *dir,int *err){
-	pkgcache *pc;
+	struct dirent dent,*pdent;
+	pkgcache *pc = NULL;
 	DIR *d;
 
 	if((d = opendir(dir)) == NULL){
 		*err = errno;
 		return NULL;
 	}
-	// FIXME recurse through directory looking for package files. take
-	// union over results
-	pc = NULL;
-	if(closedir(d)){
-		*err = errno;
-		return NULL;
+	while(readdir_r(d,&dent,&pdent) == 0){
+		if(pdent == NULL){
+			if(closedir(d)){
+				*err = errno;
+				// FIXME free partial lists
+				return NULL;
+			}
+			return pc;
+		}
+		// FIXME want a non-destructive union operation. this throws
+		// away (leaks) results thus far to get new ones.
+		if(dent.d_type != DT_REG && dent.d_type != DT_LNK){
+			continue; // FIXME maybe don't skip DT_UNKNOWN?
+		}
+		if((pc = parse_packages_file(dent.d_name,err)) == NULL){
+			closedir(d);
+			// FIXME free partial lists
+			return NULL;
+		}
 	}
+	*err = errno;
+	closedir(d);
 	return pc;
 }
 
