@@ -21,7 +21,7 @@ dist_doc_DATA+=COPYING libraptorial.xhtml
 bin_PROGRAMS=raptorial-tester rapt-show-versions
 
 lib_LTLIBRARIES = libraptorial.la
-libraptorial_la_SOURCES = src/lib/packages.c
+libraptorial_la_SOURCES = src/lib/packages.c src/lib/paths.c
      
 raptorial_tester_SOURCES = src/tester/main.c
 raptorial_tester_LDADD = libraptorial.la

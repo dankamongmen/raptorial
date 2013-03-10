@@ -27,6 +27,8 @@ extern "C" {
   #endif
 #endif
 
+#include <stddef.h>
+
 struct pkgobj;
 struct pkgcache;
 
@@ -71,6 +73,12 @@ pkgcache_version(const struct pkgobj *);
 
 PUBLIC unsigned
 pkgcache_count(const struct pkgcache *);
+
+PUBLIC const char *
+raptorial_def_lists_dir(void);
+
+PUBLIC const char *
+raptorial_def_status_file(void);
 
 #ifdef __cplusplus
 }
