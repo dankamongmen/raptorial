@@ -434,6 +434,12 @@ parse_packages_dir(const char *dir,int *err){
 		*err = errno;
 		return NULL;
 	}
+	// Change directory so that relative dent.d_name entries can be opened
+	if(chdir(dir)){
+		*err = errno;
+		closedir(d);
+		return NULL;
+	}
 	while(readdir_r(d,&dent,&pdent) == 0){
 		if(pdent == NULL){
 			if(closedir(d)){
