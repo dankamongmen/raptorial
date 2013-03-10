@@ -101,23 +101,9 @@ enum {
 	STATE_PDATA = 0,
 	STATE_NLINE = 1,
 	STATE_RESET = 2,
-	STATE_V,
-	STATE_VE,
-	STATE_VER,
-	STATE_VERS,
-	STATE_VERSI,
-	STATE_VERSIO,
-	STATE_VERSION,
-	STATE_VERSION_DELIM,
+	STATE_EXPECT,
+	STATE_DELIM,
 	STATE_VERSION_DELIMITED,
-	STATE_P,
-	STATE_PA,
-	STATE_PAC,
-	STATE_PACK,
-	STATE_PACKA,
-	STATE_PACKAG,
-	STATE_PACKAGE,
-	STATE_PACKAGE_DELIM,
 	STATE_PACKAGE_DELIMITED,
 };
 
@@ -154,6 +140,8 @@ parse_chunk(void *vpp){
 		}else{
 			end = start + pp->csize;
 		}
+		const char *expect;
+		int rewardstate;
 
 		// First, find the start of our chunk:
 		//  - If we are offset 0, we are at the start of our chunk
@@ -185,15 +173,16 @@ parse_chunk(void *vpp){
 		enq = &head;
 		// We are at the beginning of our chunk, which might be 0 bytes. Any
 		// partial record with which our map started has been skipped
-		state = STATE_RESET; // number of newlines we've seen, bounded by 2
 		// Upon reaching the (optional, only one allowed) delimiter on each
 		// line, delim will be updated to point one past that delimiter (which
 		// might be outside the chunk!), and to chew whitespace.
 		delim = NULL;
+		expect = NULL;
 		// We hand create_package our raw map bytes; it allocates the destbuf.
 		// These are thus reset on each package.
 		pname = NULL; pver = NULL;
 		pnamelen = 0; pverlen = 0;
+		state = STATE_RESET; // number of newlines we've seen, bounded by 2
 		while(c < end || (state != STATE_RESET && c < veryend)){
 			if(*c == '\n'){ // State machine is driven by newlines
 				if(state == STATE_NLINE){ // double newline
@@ -215,8 +204,8 @@ parse_chunk(void *vpp){
 					state = STATE_RESET;
 				}else{ // We processed a line of the current package
 					if(state == STATE_PACKAGE_DELIMITED){
-	// Don't allow a package to be named twice. Defined another way, require
-	// an empty line between every two instances of a Package: line.
+// Don't allow a package to be named twice. Defined another way, require an
+// empty line between every two instances of a Package: line.
 						if(pname){
 							goto err;
 						}
@@ -232,76 +221,39 @@ parse_chunk(void *vpp){
 					state = STATE_NLINE;
 				}
 			}else switch(state){ // not a newline
-			case STATE_NLINE:
-			case STATE_RESET:
-				delim = NULL;
-				start = c;
-				if(*c == 'V'){
-					state = STATE_V;
-				}else if(*c == 'P'){
-					state = STATE_P;
-				}else{
-					state = STATE_PDATA;
-				}
-				break;
-			case STATE_V:
-				state = *c == 'e' ? STATE_VE : STATE_PDATA;
-				break;
-			case STATE_VE:
-				state = *c == 'r' ? STATE_VER : STATE_PDATA;
-				break;
-			case STATE_VER:
-				state = *c == 's' ? STATE_VERS : STATE_PDATA;
-				break;
-			case STATE_VERS:
-				state = *c == 'i' ? STATE_VERSI : STATE_PDATA;
-				break;
-			case STATE_VERSI:
-				state = *c == 'o' ? STATE_VERSIO : STATE_PDATA;
-				break;
-			case STATE_VERSIO:
-				state = *c == 'n' ? STATE_VERSION : STATE_PDATA;
-				break;
-			case STATE_VERSION:
-				state = *c == ':' ? STATE_VERSION_DELIM : STATE_PDATA;
-				delim = c + 1;
-				break;
-			case STATE_VERSION_DELIM:
-				if(isspace(*c)){
-					++delim;
-				}else{
-					state = STATE_VERSION_DELIMITED;
-				}
-				break;
-			case STATE_P:
-				state = *c == 'a' ? STATE_PA : STATE_PDATA;
-				break;
-			case STATE_PA:
-				state = *c == 'c' ? STATE_PAC : STATE_PDATA;
-				break;
-			case STATE_PAC:
-				state = *c == 'k' ? STATE_PACK : STATE_PDATA;
-				break;
-			case STATE_PACK:
-				state = *c == 'a' ? STATE_PACKA : STATE_PDATA;
-				break;
-			case STATE_PACKA:
-				state = *c == 'g' ? STATE_PACKAG : STATE_PDATA;
-				break;
-			case STATE_PACKAG:
-				state = *c == 'e' ? STATE_PACKAGE : STATE_PDATA;
-				break;
-			case STATE_PACKAGE:
-				state = *c == ':' ? STATE_PACKAGE_DELIM : STATE_PDATA;
-				delim = c + 1;
-				break;
-			case STATE_PACKAGE_DELIM:
-				if(isspace(*c)){
-					++delim;
-				}else{
-					state = STATE_PACKAGE_DELIMITED;
-				}
-				break;
+				case STATE_NLINE:
+				case STATE_RESET:
+					delim = NULL;
+					start = c;
+					if(*c == 'V'){
+						state = STATE_EXPECT;
+						expect = "ersion:";
+						rewardstate = STATE_VERSION_DELIMITED;
+					}else if(*c == 'P'){
+						state = STATE_EXPECT;
+						expect = "ackage:";
+						rewardstate = STATE_PACKAGE_DELIMITED;
+					}else{
+						state = STATE_PDATA;
+					}
+					break;
+				case STATE_EXPECT:
+					if(*c == *expect){
+						if(!*++expect){
+							state = STATE_DELIM;
+							delim = c + 1;
+						}
+					}else{
+						state = STATE_PDATA;
+					}
+					break;
+				case STATE_DELIM:
+					if(isspace(*c)){
+						++delim;
+					}else{
+						state = rewardstate;
+					}
+					break;
 			}
 			++c;
 		}
