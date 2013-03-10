@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <dirent.h>
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -420,6 +421,25 @@ parse_packages_file(const char *path,int *err){
 		return NULL;
 	}
 	close(fd);
+	return pc;
+}
+
+PUBLIC pkgcache *
+parse_packages_dir(const char *dir,int *err){
+	pkgcache *pc;
+	DIR *d;
+
+	if((d = opendir(dir)) == NULL){
+		*err = errno;
+		return NULL;
+	}
+	// FIXME recurse through directory looking for package files. take
+	// union over results
+	pc = NULL;
+	if(closedir(d)){
+		*err = errno;
+		return NULL;
+	}
 	return pc;
 }
 

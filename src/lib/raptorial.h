@@ -36,6 +36,11 @@ struct pkgcache;
 PUBLIC struct pkgcache *
 parse_packages_file(const char *,int *);
 
+// Returns a new package cache object after parsing any package lists found in
+// the specified directory.
+PUBLIC struct pkgcache *
+parse_packages_dir(const char *,int *);
+
 // Returns a new package cache object after parsing the provided package list.
 // On error, the error value will be written through; it is otherwise
 // untouched.

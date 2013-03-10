@@ -33,10 +33,9 @@ int main(int argc,char **argv){
 	const char *listdir,*statusfile;
 	struct pkgcache *pc;
 	struct pkgobj *po;
-	int err,c,verbose;
-	unsigned pkgs;
+	int err,c;
 
-	verbose = 0;
+	//verbose = 0;
 	listdir = NULL;
 	statusfile = NULL;
 	while((c = getopt_long(argc,argv,"s:l:p:vah",longopts,&optind)) != -1){
@@ -48,7 +47,7 @@ int main(int argc,char **argv){
 				fprintf(stderr,"Not yet implemented: --allversions\n");
 				return EXIT_FAILURE; // FIXME
 			case 'v':
-				verbose = 1;
+				// verbose = 1;
 				break;
 			case 'l':
 				if(listdir){
@@ -76,26 +75,14 @@ int main(int argc,char **argv){
 	if(listdir == NULL){
 		listdir = LISTDIR_DEFAULT;
 	}
-	// FIXME handle argv
-	if((pc = parse_packages_file(listdir,&err)) == NULL){
+	if((pc = parse_packages_dir(listdir,&err)) == NULL){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",listdir,strerror(err));
 		return EXIT_FAILURE;
 	}
-	pkgs = 0;
-	if(verbose){
-		printf("Reported package count: %u\n",pkgcache_count(pc));
-	}
+	// FIXME handle argv restrictions on output
 	for(po = pkgcache_begin(pc) ; po ; po = pkgcache_next(po)){
 		printf("%s %s\n",pkgcache_name(po),pkgcache_version(po));
-		++pkgs;
-	}
-	if(pkgs != pkgcache_count(pc)){
-		fprintf(stderr,"Package count was inaccurate (%u != %u)\n",
-				pkgs,pkgcache_count(pc));
-		return EXIT_FAILURE;
 	}
 	free_package_cache(pc);
-	printf("Successfully parsed %s (%u package%s)\n",argv[1],
-			pkgs,pkgs == 1 ? "" : "s");
 	return EXIT_SUCCESS;
 }
