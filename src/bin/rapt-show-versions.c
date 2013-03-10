@@ -5,17 +5,14 @@
 #include <getopt.h>
 #include <raptorial.h>
 
-#define STATUSFILE_DEFAULT "/var/lib/dpkg/status"
-#define LISTDIR_DEFAULT "/var/lib/apt/lists"
-
 static void
 usage(FILE *out,const char *name){
 	fprintf(out,"rapt-show-versions v%s by nick black <dank@qemfd.net>\n",PACKAGE_VERSION);
 	fprintf(out," invoked as %s\n",name);
 	fprintf(out,"\n");
 	fprintf(out,"options:\n");
-	fprintf(out," -s|--status-file=<file> Status file (def: %s)\n",STATUSFILE_DEFAULT);
-	fprintf(out," -l|--list-dir=<dir>     List directory (def: %s)\n",LISTDIR_DEFAULT);
+	fprintf(out," -s|--status-file=<file> Status file (def: %s)\n",raptorial_def_status_file());
+	fprintf(out," -l|--list-dir=<dir>     List directory (def: %s)\n",raptorial_def_lists_dir());
 	fprintf(out," -v|--verbose            Increase verbosity during parsing\n");
 	fprintf(out," -a|--allversions        Print all available versions\n");
 	fprintf(out," -h|--help               Display this usage summary\n");
@@ -70,10 +67,10 @@ int main(int argc,char **argv){
 		}
 	}
 	if(statusfile == NULL){
-		statusfile = STATUSFILE_DEFAULT;
+		statusfile = raptorial_def_status_file();
 	}
 	if(listdir == NULL){
-		listdir = LISTDIR_DEFAULT;
+		listdir = raptorial_def_lists_dir();
 	}
 	if((pc = parse_packages_dir(listdir,&err)) == NULL){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",listdir,strerror(err));
