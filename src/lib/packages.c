@@ -81,6 +81,30 @@ get_new_offset(struct pkgparse *pp){
 	return o;
 }
 
+enum {
+	STATE_PDATA = 0,
+	STATE_NLINE = 1,
+	STATE_RESET = 2,
+	STATE_V,
+	STATE_VE,
+	STATE_VER,
+	STATE_VERS,
+	STATE_VERSI,
+	STATE_VERSIO,
+	STATE_VERSION,
+	STATE_VERSION_DELIM,
+	STATE_VERSION_DELIMITED,
+	STATE_P,
+	STATE_PA,
+	STATE_PAC,
+	STATE_PACK,
+	STATE_PACKA,
+	STATE_PACKAG,
+	STATE_PACKAGE,
+	STATE_PACKAGE_DELIM,
+	STATE_PACKAGE_DELIMITED,
+};
+
 // Threads handle chunks of the packages list. Since we don't know where
 // package definitions are split in the list data, we'll usually toss some data
 // from the front (it was handled as part of another chunk), and grab some
@@ -125,17 +149,17 @@ parse_chunk(void *vpp){
 		if(offset){
 			// We can be in one of two states: we know the previous
 			// character to have been a newline, or we don't.
-			state = 0;
+			state = STATE_PDATA;
 			assert(pp->csize > 2); // sanity check
 			for(c = start - 2 ; c < end ; ++c){
 				if(*c == '\n'){
-					if(state){
+					if(state == STATE_NLINE){
 						++c;
 						break;
 					}
-					state = 1;
+					state = STATE_NLINE;
 				}else{
-					state = 0;
+					state = STATE_PDATA;
 				}
 			}
 		}else{
@@ -145,7 +169,7 @@ parse_chunk(void *vpp){
 		enq = &head;
 		// We are at the beginning of our chunk, which might be 0 bytes. Any
 		// partial record with which our map started has been skipped
-		state = 2; // number of newlines we've seen, bounded by 2
+		state = STATE_RESET; // number of newlines we've seen, bounded by 2
 		// Upon reaching the (optional, only one allowed) delimiter on each
 		// line, delim will be updated to point one past that delimiter (which
 		// might be outside the chunk!), and to chew whitespace.
@@ -154,13 +178,15 @@ parse_chunk(void *vpp){
 		// These are thus reset on each package.
 		pname = NULL; pver = NULL;
 		pnamelen = 0; pverlen = 0;
-		while(c < end || (state < 2 && c < veryend)){
+		while(c < end || (state != STATE_RESET && c < veryend)){
 			if(*c == '\n'){ // State machine is driven by newlines
-				if(++state == 2){
+				if(state == STATE_NLINE){ // double newline
 					if(pname == NULL || pnamelen == 0){
+						fprintf(stderr,"No package name\n");
 						goto err; // No package name
 					}
 					if(pver == NULL || pverlen == 0){
+						fprintf(stderr,"No package version\n");
 						goto err; // No package version
 					}
 					if((po = create_package(pname,pnamelen,pver,pverlen)) == NULL){
@@ -172,40 +198,96 @@ parse_chunk(void *vpp){
 					enq = &po->next;
 					pname = NULL;
 					pver = NULL;
+					state = STATE_RESET;
 				}else{ // We processed a line of the current package
-					if(delim){ // Was line delimited?
-						if((size_t)(c - start) >= strlen("Package:")){
-							if(strncmp(start,"Package:",strlen("Package:")) == 0){
+					if(state == STATE_PACKAGE_DELIMITED){
 	// Don't allow a package to be named twice. Defined another way, require
 	// an empty line between every two instances of a Package: line.
-								if(pname){
-									goto err;
-								}
-								pnamelen = c - delim;
-								pname = delim;
-							}else if(strncmp(start,"Version:",strlen("Version:")) == 0){
-								if(pver){
-									goto err;
-								}
-								pverlen = c - delim;
-								pver = delim;
-							}
+						if(pname){
+							goto err;
 						}
+						pnamelen = c - delim;
+						pname = delim;
+					}else if(state == STATE_VERSION_DELIMITED){
+						if(pver){
+							goto err;
+						}
+						pverlen = c - delim;
+						pver = delim;
 					}
+					state = STATE_NLINE;
 				}
-			}else{ // not a newline
-				if(state){
-					delim = NULL;
-					start = c;
-					state = 0;
+			}else switch(state){ // not a newline
+			case STATE_NLINE:
+			case STATE_RESET:
+				delim = NULL;
+				start = c;
+				if(*c == 'V'){
+					state = STATE_V;
+				}else if(*c == 'P'){
+					state = STATE_P;
+				}else{
+					state = STATE_PDATA;
 				}
+				break;
+			case STATE_V:
+				state = *c == 'e' ? STATE_VE : STATE_PDATA;
+				break;
+			case STATE_VE:
+				state = *c == 'r' ? STATE_VER : STATE_PDATA;
+				break;
+			case STATE_VER:
+				state = *c == 's' ? STATE_VERS : STATE_PDATA;
+				break;
+			case STATE_VERS:
+				state = *c == 'i' ? STATE_VERSI : STATE_PDATA;
+				break;
+			case STATE_VERSI:
+				state = *c == 'o' ? STATE_VERSIO : STATE_PDATA;
+				break;
+			case STATE_VERSIO:
+				state = *c == 'n' ? STATE_VERSION : STATE_PDATA;
+				break;
+			case STATE_VERSION:
+				state = *c == ':' ? STATE_VERSION_DELIM : STATE_PDATA;
+				delim = c + 1;
+				break;
+			case STATE_VERSION_DELIM:
 				if(isspace(*c)){
-					if(c == delim){
-						++delim;
-					}
-				}else if(*c == ':'){
-					delim = c + 1;
+					++delim;
+				}else{
+					state = STATE_VERSION_DELIMITED;
 				}
+				break;
+			case STATE_P:
+				state = *c == 'a' ? STATE_PA : STATE_PDATA;
+				break;
+			case STATE_PA:
+				state = *c == 'c' ? STATE_PAC : STATE_PDATA;
+				break;
+			case STATE_PAC:
+				state = *c == 'k' ? STATE_PACK : STATE_PDATA;
+				break;
+			case STATE_PACK:
+				state = *c == 'a' ? STATE_PACKA : STATE_PDATA;
+				break;
+			case STATE_PACKA:
+				state = *c == 'g' ? STATE_PACKAG : STATE_PDATA;
+				break;
+			case STATE_PACKAG:
+				state = *c == 'e' ? STATE_PACKAGE : STATE_PDATA;
+				break;
+			case STATE_PACKAGE:
+				state = *c == ':' ? STATE_PACKAGE_DELIM : STATE_PDATA;
+				delim = c + 1;
+				break;
+			case STATE_PACKAGE_DELIM:
+				if(isspace(*c)){
+					++delim;
+				}else{
+					state = STATE_PACKAGE_DELIMITED;
+				}
+				break;
 			}
 			++c;
 		}
@@ -226,6 +308,7 @@ parse_chunk(void *vpp){
 	return vpp;
 
 err:
+	assert(0); // FIXME remove once return values are checked in pthread_join
 	while( (po = head) ){
 		head = po->next;
 		free_package(po);
@@ -259,6 +342,7 @@ parse_map(pkgcache *pc,const void *mem,size_t len,int *err){
 		pthread_mutex_destroy(&pp.lock);
 		return -1;
 	}
+	// FIXME need check all return values and ensure they're non-NULL
 	if(blossom_join_all(&bs)){
 		*err = errno;
 		blossom_free_state(&bs);
