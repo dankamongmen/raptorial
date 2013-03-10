@@ -257,7 +257,7 @@ parse_chunk(void *vpp){
 			}
 			++c;
 		}
-		if(state < 2){
+		if(state != STATE_RESET){
 			goto err; // map ended in the middle of a package
 		}
 		offset = get_new_offset(pp);
