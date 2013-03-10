@@ -74,3 +74,6 @@ Differences from standard tools|
 
 rapt-show-versions neither requires nor makes use of the apt-show-versions
 cache. The -i/--initialize option is neither required nor supported.
+
+rapt-show-versions does not support the -p/--package option, as this was never
+necessary to use. Simply provide a package specification as an argument.
