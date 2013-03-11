@@ -30,16 +30,22 @@ typedef struct pkgobj {
 // One package cache per Packages/Sources file. A release will generally have
 // { |Architectures| X |Components| } Packages files, and one Sources file per
 // component.
-typedef struct pkgcache {
+typedef struct pkglist {
 	pkgobj *pobjs;
 	unsigned pcount;
+	struct pkglist *next;
 	char *arch,*distribution;
-} pkgcache;
+} pkglist;
 
 // Contains >= 1 components and >= 1 architectures. Parameterized by (at least)
 // origin, label, and codename.
 typedef struct release {
 } release;
+
+// For now, just a flat list of pkglists; we'll likely introduce structure.
+typedef struct pkgcache {
+	pkglist *lists;
+} pkgcache;
 
 struct pkgparse {
 	unsigned count;
@@ -51,7 +57,7 @@ struct pkgparse {
 	// lock. A thread takes the chunk at offset, incrementing offset by
 	// the chunksize. Parsed pkgobjs are placed in sharedpcache.
 	size_t offset;
-	pkgcache *sharedpcache;
+	pkglist *sharedpcache;
 };
 
 static void
@@ -282,12 +288,12 @@ err:
 
 // len is the true length, less than or equal to the mapped length.
 static int
-parse_map(pkgcache *pc,const void *mem,size_t len,int *err){
+parse_map(pkglist *pl,const void *mem,size_t len,int *err){
 	struct pkgparse pp = {
 		.mem = mem,
 		.len = len,
 		.offset = 0,
-		.sharedpcache = pc,
+		.sharedpcache = pl,
 		.csize = 1024 * 1024,
 	};
 	blossom_ctl bctl = {
@@ -325,28 +331,40 @@ parse_map(pkgcache *pc,const void *mem,size_t len,int *err){
 	return 0;
 }
 
+static inline pkglist *
+create_pkglist(const void *mem,size_t len,int *err){
+	pkglist *pl;
+
+	if((pl = malloc(sizeof(*pl))) == NULL){
+		*err = errno;
+	}else{
+		memset(pl,0,sizeof(*pl));
+		if(parse_map(pl,mem,len,err)){
+			free(pl);
+			return NULL;
+		}
+	}
+	return pl;
+}
+
 static inline pkgcache *
-create_pkgcache(const void *mem,size_t len,int *err){
+create_pkgcache(pkglist *pl,int *err){
 	pkgcache *pc;
 
 	if((pc = malloc(sizeof(*pc))) == NULL){
 		*err = errno;
 	}else{
-		memset(pc,0,sizeof(*pc));
-		if(parse_map(pc,mem,len,err)){
-			free(pc);
-			return NULL;
-		}
+		pc->lists = pl;
 	}
 	return pc;
 }
 
-PUBLIC pkgcache *
+PUBLIC pkglist *
 parse_packages_file(const char *path,int *err){
 	const void *map;
 	size_t mlen,len;
 	struct stat st;
-	pkgcache *pc;
+	pkglist *pl;
 	int fd,pg;
 
 	if(path == NULL){
@@ -385,32 +403,38 @@ parse_packages_file(const char *path,int *err){
 			return NULL;
 		}
 	}
-	if((pc = create_pkgcache(map,len,err)) == NULL){
+	if((pl = create_pkglist(map,len,err)) == NULL){
 		close(fd);
 		return NULL;
 	}
 	close(fd);
-	return pc;
+	return pl;
 }
 
 PUBLIC pkgcache *
 parse_packages_dir(const char *dir,int *err){
 	struct dirent dent,*pdent;
-	pkgcache *pc = NULL;
+	pkgcache *pc;
 	DIR *d;
 
+	if((pc = create_pkgcache(NULL,err)) == NULL){
+		return NULL;
+	}
 	if((d = opendir(dir)) == NULL){
 		*err = errno;
+		free_package_cache(pc);
 		return NULL;
 	}
 	// Change directory so that relative dent.d_name entries can be opened
 	if(chdir(dir)){
 		*err = errno;
 		closedir(d);
+		free_package_cache(pc);
 		return NULL;
 	}
 	while(readdir_r(d,&dent,&pdent) == 0){
 		const char *suffixes[] = { "Sources", "Packages", NULL },**suffix;
+		pkglist *pl;
 
 		if(pdent == NULL){
 			if(closedir(d)){
@@ -428,13 +452,13 @@ parse_packages_dir(const char *dir,int *err){
 				continue;
 			}
 			if(strcmp(dent.d_name + strlen(dent.d_name) - strlen(*suffix),*suffix) == 0){
-				// FIXME want a non-destructive union operation. this throws
-				// away (leaks) results thus far to get new ones.
-				if((pc = parse_packages_file(dent.d_name,err)) == NULL){
+				if((pl = parse_packages_file(dent.d_name,err)) == NULL){
 					closedir(d);
 					free_package_cache(pc);
 					return NULL;
 				}
+				pl->next = pc->lists;
+				pc->lists = pl;
 				break;
 			}
 		}
@@ -445,16 +469,34 @@ parse_packages_dir(const char *dir,int *err){
 	return pc;
 }
 
-PUBLIC pkgcache *
+PUBLIC pkglist *
 parse_packages_mem(const void *mem,size_t len,int *err){
-	pkgcache *pc;
+	pkglist *pl;
 
 	if(mem == NULL || len == 0){
 		*err = EINVAL;
 		return NULL;
 	}
-	if((pc = create_pkgcache(mem,len,err)) == NULL){
+	if((pl = create_pkglist(mem,len,err)) == NULL){
 		return NULL;
+	}
+	return pl;
+}
+
+PUBLIC void
+free_package_list(pkglist *pl){
+	free(pl);
+}
+
+PUBLIC pkgcache *
+pkgcache_from_pkglist(pkglist *pl,int *err){
+	pkgcache *pc;
+
+	if(pl == NULL){
+		return NULL;
+	}
+	if((pc = create_pkgcache(pl,err)) == NULL){
+		free_package_list(pl);
 	}
 	return pc;
 }
@@ -462,27 +504,43 @@ parse_packages_mem(const void *mem,size_t len,int *err){
 PUBLIC void
 free_package_cache(pkgcache *pc){
 	if(pc){
+		pkglist *pl;
+
+		while( (pl = pc->lists) ){
+			pc->lists = pl->next;
+			free_package_list(pl);
+		}
 		free(pc);
 	}
 }
 
-PUBLIC pkgobj *
+PUBLIC pkglist *
 pkgcache_begin(pkgcache *pc){
-	return pc->pobjs;
+	return pc->lists;
+}
+
+PUBLIC pkglist *
+pkgcache_next(pkglist *pl){
+	return pl->next;
 }
 
 PUBLIC pkgobj *
-pkgcache_next(pkgobj *po){
+pkglist_begin(pkglist *pl){
+	return pl->pobjs;
+}
+
+PUBLIC pkgobj *
+pkglist_next(pkgobj *po){
 	return po->next;
 }
 
 PUBLIC const pkgobj *
-pkgcache_cbegin(const pkgcache *pc){
-	return pc->pobjs;
+pkglist_cbegin(const pkglist *pl){
+	return pl->pobjs;
 }
 
 PUBLIC const pkgobj *
-pkgcache_cnext(const pkgobj *po){
+pkglist_cnext(const pkgobj *po){
 	return po->next;
 }
 
@@ -492,8 +550,8 @@ pkgobj_name(const pkgobj *po){
 }
 
 PUBLIC const char *
-pkgcache_dist(const pkgcache *pc){
-	return pc->distribution;
+pkglist_dist(const pkglist *pl){
+	return pl->distribution;
 }
 
 PUBLIC const char *
@@ -502,6 +560,15 @@ pkgobj_version(const pkgobj *po){
 }
 
 PUBLIC unsigned
-pkgcache_count(const pkgcache *po){
-	return po->pcount;
+pkgcache_count(const pkgcache *pc){
+	unsigned tot = 0;
+
+	if(pc){
+		pkglist *pl;
+
+		for(pl = pc->lists ; pl ; pl = pl ->next){
+			tot += pl->pcount;
+		}
+	}
+	return tot;
 }

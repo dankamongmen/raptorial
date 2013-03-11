@@ -30,6 +30,7 @@ int main(int argc,char **argv){
 	};
 	const char *listdir,*statusfile;
 	struct pkgcache *pc;
+	struct pkglist *pl;
 	struct pkgobj *po;
 	int err,c;
 
@@ -78,9 +79,11 @@ int main(int argc,char **argv){
 		return EXIT_FAILURE;
 	}
 	// FIXME handle argv restrictions on output
-	for(po = pkgcache_begin(pc) ; po ; po = pkgcache_next(po)){
-		printf("%s/%s %s\n",pkgobj_name(po),pkgcache_dist(pc),
-					pkgobj_version(po));
+	for(pl = pkgcache_begin(pc) ; pl ; pl = pkgcache_next(pl)){
+		for(po = pkglist_begin(pl) ; po ; po = pkglist_next(po)){
+			printf("%s/%s %s\n",pkgobj_name(po),
+					pkglist_dist(pl),pkgobj_version(po));
+		}
 	}
 	free_package_cache(pc);
 	return EXIT_SUCCESS;
