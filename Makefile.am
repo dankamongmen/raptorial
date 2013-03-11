@@ -9,7 +9,7 @@ AM_CPPFLAGS=-I $(SRCDIR)/src/lib
 
 LIBS+=$(PTHREAD_LIBS) 
 
-dist_man_MANS = libraptorial.3
+dist_man_MANS = rapt-show-versions.1 libraptorial.3
 
 doc_DIR=doc
 doc_DATA=
@@ -31,6 +31,9 @@ rapt_show_versions_LDADD = libraptorial.la
 
 check: $(srcdir)/tests/Packages $(bin_PROGRAMS)
 	./raptorial-tester $(srcdir)/tests/Packages
+
+%.1: $(doc_DIR)/man/man1/%.xml $(doc_DIR)/@PACKAGE_NAME@.ent
+	$(XSLTPROC) --path $(doc_DIR) -o $@ --nonet /usr/share/xml/docbook/stylesheet/docbook-xsl/manpages/docbook.xsl $<
 
 %.3: $(doc_DIR)/man/man3/%.xml $(doc_DIR)/@PACKAGE_NAME@.ent
 	$(XSLTPROC) --path $(doc_DIR) -o $@ --nonet /usr/share/xml/docbook/stylesheet/docbook-xsl/manpages/docbook.xsl $<
