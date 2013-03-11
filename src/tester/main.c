@@ -25,7 +25,7 @@ int main(int argc,char **argv){
 	pkgs = 0;
 	printf("Reported package count: %u\n",pkgcache_count(pc));
 	for(po = pkgcache_begin(pc) ; po ; po = pkgcache_next(po)){
-		printf("%s %s\n",pkgcache_name(po),pkgcache_version(po));
+		printf("%s %s\n",pkgobj_name(po),pkgobj_version(po));
 		++pkgs;
 	}
 	if(pkgs != pkgcache_count(pc)){

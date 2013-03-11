@@ -79,7 +79,8 @@ int main(int argc,char **argv){
 	}
 	// FIXME handle argv restrictions on output
 	for(po = pkgcache_begin(pc) ; po ; po = pkgcache_next(po)){
-		printf("%s %s\n",pkgcache_name(po),pkgcache_version(po));
+		printf("%s/%s %s\n",pkgobj_name(po),pkgcache_dist(pc),
+					pkgobj_version(po));
 	}
 	free_package_cache(pc);
 	return EXIT_SUCCESS;
