@@ -66,10 +66,13 @@ PUBLIC const struct pkgobj *
 pkgcache_cnext(const struct pkgobj *);
 
 PUBLIC const char *
-pkgcache_name(const struct pkgobj *);
+pkgobj_name(const struct pkgobj *);
 
 PUBLIC const char *
-pkgcache_version(const struct pkgobj *);
+pkgcache_dist(const struct pkgcache *);
+
+PUBLIC const char *
+pkgobj_version(const struct pkgobj *);
 
 PUBLIC unsigned
 pkgcache_count(const struct pkgcache *);

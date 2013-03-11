@@ -33,6 +33,7 @@ typedef struct pkgobj {
 typedef struct pkgcache {
 	pkgobj *pobjs;
 	unsigned pcount;
+	char *arch,*distribution;
 } pkgcache;
 
 // Contains >= 1 components and >= 1 architectures. Parameterized by (at least)
@@ -486,12 +487,17 @@ pkgcache_cnext(const pkgobj *po){
 }
 
 PUBLIC const char *
-pkgcache_name(const pkgobj *po){
+pkgobj_name(const pkgobj *po){
 	return po->name;
 }
 
 PUBLIC const char *
-pkgcache_version(const pkgobj *po){
+pkgcache_dist(const pkgcache *pc){
+	return pc->distribution;
+}
+
+PUBLIC const char *
+pkgobj_version(const pkgobj *po){
 	return po->version;
 }
 
