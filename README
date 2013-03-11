@@ -77,3 +77,9 @@ cache. The -i/--initialize option is neither required nor supported.
 
 rapt-show-versions does not support the -p/--package option, as this was never
 necessary to use. Simply provide a package specification as an argument.
+
+rapt-show-versions does not support the -r/--regex nor -R/--regex-all options.
+Simply provide a regular expression to use it for search.
+
+These options might be added for backwards compatibility, but there are no
+plans to do so currently.
