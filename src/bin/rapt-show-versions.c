@@ -10,6 +10,7 @@ usage(FILE *out,const char *name){
 	fprintf(out,"rapt-show-versions v%s by nick black <dank@qemfd.net>\n",PACKAGE_VERSION);
 	fprintf(out," invoked as %s\n",name);
 	fprintf(out,"\n");
+	fprintf(out,"usage: rapt-show-versions [ options ] packageregex\n");
 	fprintf(out,"options:\n");
 	fprintf(out," -s|--status-file=<file> Status file (def: %s)\n",raptorial_def_status_file());
 	fprintf(out," -l|--list-dir=<dir>     List directory (def: %s)\n",raptorial_def_lists_dir());
