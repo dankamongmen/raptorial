@@ -286,6 +286,89 @@ err:
 	return NULL;
 }
 
+struct dirparse {
+	DIR *dir;
+	pkgcache *sharedpcache;
+	pthread_mutex_t lock;
+};
+
+static void *
+parse_dir(void *vdp){
+	struct dirparse *dp = vdp;
+	struct dirent dent,*pdent;
+
+	while(readdir_r(dp->dir,&dent,&pdent) == 0){
+		const char *suffixes[] = { "Sources", "Packages", NULL },**suffix;
+		pkglist *pl;
+
+		if(pdent == NULL){
+			return dp;
+		}
+		if(dent.d_type != DT_REG && dent.d_type != DT_LNK){
+			continue; // FIXME maybe don't skip DT_UNKNOWN?
+		}
+		for(suffix = suffixes ; *suffix ; ++suffix){
+			if(strlen(dent.d_name) < strlen(*suffix)){
+				continue;
+			}
+			if(strcmp(dent.d_name + strlen(dent.d_name) - strlen(*suffix),*suffix) == 0){
+				int err;
+
+				if((pl = parse_packages_file(dent.d_name,&err)) == NULL){
+					return NULL;
+				}
+				pl->next = dp->sharedpcache->lists;
+				dp->sharedpcache->lists = pl;
+				break;
+			}
+		}
+	}
+	// *err = errno;
+	return NULL;
+}
+
+// len is the true length, less than or equal to the mapped length.
+static int
+parse_listdir(pkgcache *pc,DIR *dir,int *err){
+	struct dirparse dp = {
+		.dir = dir,
+		.sharedpcache = pc,
+	};
+	blossom_ctl bctl = {
+		.flags = 0,
+		.tids = 1,
+	};
+	blossom_state bs;
+	int r;
+
+	if( (r = pthread_mutex_init(&dp.lock,NULL)) ){
+		*err = r;
+		return -1;
+	}
+	if(blossom_per_pe(&bctl,&bs,NULL,parse_dir,&dp)){
+		*err = errno;
+		pthread_mutex_destroy(&dp.lock);
+		return -1;
+	}
+	if(blossom_join_all(&bs)){
+		*err = errno;
+		blossom_free_state(&bs);
+		pthread_mutex_destroy(&dp.lock);
+		return -1;
+	}
+	if(blossom_validate_joinrets(&bs)){
+		blossom_free_state(&bs);
+		pthread_mutex_destroy(&dp.lock);
+		return -1;
+	}
+	blossom_free_state(&bs);
+	if((r = pthread_mutex_destroy(&dp.lock))){
+		*err = r;
+		return -1;
+	}
+	return 0;
+}
+
 // len is the true length, less than or equal to the mapped length.
 static int
 parse_map(pkglist *pl,const void *mem,size_t len,int *err){
@@ -413,7 +496,6 @@ parse_packages_file(const char *path,int *err){
 
 PUBLIC pkgcache *
 parse_packages_dir(const char *dir,int *err){
-	struct dirent dent,*pdent;
 	pkgcache *pc;
 	DIR *d;
 
@@ -432,40 +514,15 @@ parse_packages_dir(const char *dir,int *err){
 		free_package_cache(pc);
 		return NULL;
 	}
-	while(readdir_r(d,&dent,&pdent) == 0){
-		const char *suffixes[] = { "Sources", "Packages", NULL },**suffix;
-		pkglist *pl;
-
-		if(pdent == NULL){
-			if(closedir(d)){
-				*err = errno;
-				free_package_cache(pc);
-				return NULL;
-			}
-			return pc;
-		}
-		if(dent.d_type != DT_REG && dent.d_type != DT_LNK){
-			continue; // FIXME maybe don't skip DT_UNKNOWN?
-		}
-		for(suffix = suffixes ; *suffix ; ++suffix){
-			if(strlen(dent.d_name) < strlen(*suffix)){
-				continue;
-			}
-			if(strcmp(dent.d_name + strlen(dent.d_name) - strlen(*suffix),*suffix) == 0){
-				if((pl = parse_packages_file(dent.d_name,err)) == NULL){
-					closedir(d);
-					free_package_cache(pc);
-					return NULL;
-				}
-				pl->next = pc->lists;
-				pc->lists = pl;
-				break;
-			}
-		}
+	if(parse_listdir(pc,d,err)){
+		closedir(d);
+		free_package_cache(pc);
+		return NULL;
 	}
-	*err = errno;
-	free_package_cache(pc);
-	closedir(d);
+	if(closedir(d)){
+		free_package_cache(pc);
+		return NULL;
+	}
 	return pc;
 }
 
