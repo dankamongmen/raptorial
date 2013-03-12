@@ -317,8 +317,10 @@ parse_dir(void *vdp){
 				if((pl = parse_packages_file(dent.d_name,&err)) == NULL){
 					return NULL;
 				}
-				pl->next = dp->sharedpcache->lists;
-				dp->sharedpcache->lists = pl;
+				pthread_mutex_lock(&dp->lock);
+					pl->next = dp->sharedpcache->lists;
+					dp->sharedpcache->lists = pl;
+				pthread_mutex_unlock(&dp->lock);
 				break;
 			}
 		}
