@@ -74,6 +74,10 @@ int main(int argc,char **argv){
 	if(listdir == NULL){
 		listdir = raptorial_def_lists_dir();
 	}
+	if(parse_status_file(statusfile,&err)){
+		fprintf(stderr,"Couldn't parse %s (%s?)\n",statusfile,strerror(err));
+		return EXIT_FAILURE;
+	}
 	if((pc = parse_packages_dir(listdir,&err)) == NULL){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",listdir,strerror(err));
 		return EXIT_FAILURE;
