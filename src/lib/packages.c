@@ -193,6 +193,8 @@ parse_chunk(size_t offset,const char *start,const char *end,
 	// These are thus reset on each package.
 	pname = NULL; pver = NULL; pstatus = NULL;
 	state = STATE_RESET; // number of newlines we've seen, bounded by 2
+	rewardstate = STATE_RESET;
+	pstatuslen = pverlen = pnamelen = 0;
 	while(c < end || (state != STATE_RESET && c < veryend)){
 		if(*c == '\n'){ // State machine is driven by newlines
 			switch(state){

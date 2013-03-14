@@ -2,7 +2,7 @@ LANG=C
 LC_ALL=c
 
 AM_CFLAGS=-O2 -Wall -W -Wshadow -Werror -Wextra -fvisibility=hidden \
-	  	-Wno-maybe-uninitialized $(PTHREAD_CFLAGS)
+	  	$(PTHREAD_CFLAGS)
 AM_LDFLAGS=-Wl,-O2,--no-undefined-version,--enable-new-dtags,--as-needed,--warn-common
 AM_CC=$(PTHREAD_CC)
 AM_CPPFLAGS=-I $(SRCDIR)/src/lib
