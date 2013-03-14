@@ -24,6 +24,7 @@
 typedef struct pkgobj {
 	struct pkgobj *next;
 	char *name;
+	char *status;
 	char *version;
 } pkgobj;
 
@@ -65,12 +66,14 @@ struct pkgparse {
 static void
 free_package(pkgobj *po){
 	free(po->version);
+	free(po->status);
 	free(po->name);
 	free(po);
 }
 
 static pkgobj *
-create_package(const char *name,size_t namelen,const char *ver,size_t verlen){
+create_package(const char *name,size_t namelen,const char *ver,size_t verlen,
+			const char *status,size_t statuslen){
 	pkgobj *po;
 
 	if( (po = malloc(sizeof(*po))) ){
@@ -82,6 +85,18 @@ create_package(const char *name,size_t namelen,const char *ver,size_t verlen){
 			free(po->version);
 			free(po);
 			return NULL;
+		}
+		if(status){
+			if((po->status = malloc(sizeof(*po->status) * (statuslen + 1))) == NULL){
+				free(po->name);
+				free(po->version);
+				free(po);
+				return NULL;
+			}
+			strncpy(po->status,status,statuslen);
+			po->status[statuslen] = '\0';
+		}else{
+			po->status = NULL;
 		}
 		strncpy(po->version,ver,verlen);
 		po->version[verlen] = '\0';
@@ -195,7 +210,8 @@ parse_chunk(size_t offset,const char *start,const char *end,
 				}else if(pstatus){
 					return -1; // Status in package list
 				}
-				if((po = create_package(pname,pnamelen,pver,pverlen)) == NULL){
+				if((po = create_package(pname,pnamelen,pver,pverlen,
+								pstatus,pstatuslen)) == NULL){
 					return -1;
 				}
 				// Package ended!
