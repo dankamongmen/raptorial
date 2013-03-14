@@ -18,7 +18,11 @@ doc_DATA+=README
 dist_doc_DATA=
 dist_doc_DATA+=COPYING libraptorial.xhtml
 
-bin_PROGRAMS=raptorial-tester rapt-show-versions
+bin_PROGRAMS=rapt-show-versions
+
+check_PROGRAMS=raptorial-tester
+
+include_HEADERS=src/lib/raptorial.h
 
 lib_LTLIBRARIES = libraptorial.la
 libraptorial_la_SOURCES = src/lib/packages.c src/lib/paths.c
