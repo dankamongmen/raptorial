@@ -9,7 +9,7 @@ AM_CPPFLAGS=-I $(SRCDIR)/src/lib
 
 LIBS+=$(PTHREAD_LIBS) 
 
-dist_man_MANS = rapt-show-versions.1 libraptorial.3
+dist_man_MANS = rapt-show-versions.1 raptorial-file.1 libraptorial.3
 
 doc_DIR=doc
 doc_DATA=

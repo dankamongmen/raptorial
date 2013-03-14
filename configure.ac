@@ -1,5 +1,5 @@
 AC_PREREQ([2.61])
-AC_INIT([raptorial], [0.0.1-pre], [sprezzos-dev@sprezzatech.com], [raptorial], [https://www.sprezzatech.com/wiki/index.php/Raptorial])
+AC_INIT([raptorial], [0.1.3-pre], [sprezzos-dev@sprezzatech.com], [raptorial], [https://www.sprezzatech.com/wiki/index.php/Raptorial])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_HEADERS([src/lib/config.h:config.in])
 # Restore -Werror whenever we can! FIXME

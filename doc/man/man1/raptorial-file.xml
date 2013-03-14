@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="http://docbook.sourceforge.net/release/xsl/current/manpages/docbook.xsl"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN"
+	"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd" [
+
+<!ENTITY % raptorialents SYSTEM "raptorial.ent" >
+%raptorialents;
+
+<!-- TITLE should be something like "User commands",		-->
+<!-- "&dhpackage; command-line reference" or similar (see e.g.	-->
+<!-- http://www.tldp.org/HOWTO/Man-Page/q2.html). But limit	-->
+<!-- it to 30    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" chars.	-->
+<!ENTITY dhtitle "raptorial reference">
+  
+<!-- This is the application/package name.	-->
+<!ENTITY dhucpackage "raptorial-file">
+<!ENTITY dhpackage "raptorial-file">
+
+<!-- If the application e.g. belongs to a package like X.org,	-->
+<!-- this should be set to the package/suite name instead of	-->
+<!-- dhpackage.							-->
+<!ENTITY dhproduct "raptorial">
+
+<!-- SECTION should be 1-8, maybe w/ subsection other	-->
+<!-- parameters are allowed: see man(7), man(1) and	-->
+<!-- http://www.tldp.org/HOWTO/Man-Page/q2.html.	-->
+<!ENTITY dhsection "1">
+
+]>
+
+<refentry>
+	<refentryinfo>
+		<title>&dhtitle;</title>
+		<!-- Better put a suite name instead of &dhpackage; into productname -->
+		<productname>&dhproduct;</productname>
+		<releaseinfo role="version">&dhrelease;</releaseinfo>
+		<authorgroup>
+			<author>
+				<firstname>&dhfirstname;</firstname>
+				<surname>&dhsurname;</surname>
+				<contrib>Design and implementation.</contrib>
+				<address>
+					<email>&dhemail;</email>
+				</address>
+			</author>
+		</authorgroup>
+		<copyright>
+			<year>2013</year>
+			<holder>&dhusername;</holder>
+		</copyright>
+	</refentryinfo>
+	<refmeta>
+		<refentrytitle>&dhucpackage;</refentrytitle>
+		<manvolnum>&dhsection;</manvolnum>
+	</refmeta>
+	<refnamediv>
+		<refname>&dhpackage;</refname>
+		<refpurpose>Search APT packages</refpurpose>
+	</refnamediv>
+</refentry>

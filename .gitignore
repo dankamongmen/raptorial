@@ -8,6 +8,7 @@ config.status
 config.sub
 configure
 depcomp
+.deps
 doc/raptorial.ent
 install-sh
 libraptorial.3
@@ -19,6 +20,8 @@ missing
 rapt-show-versions
 rapt-show-versions.1
 raptorial-tester
+raptorial-file
+raptorial-file.1
 .libs/
 Makefile
 Makefile.in
