@@ -122,151 +122,168 @@ enum {
 // we just always locally discover the bounds (put another way, the overlapping
 // areas at the front and back of chunks are lexed twice).
 //
+// Returns the number of packages parsed (possibly 0), or -1 on error. In the
+// case of an error, packages already parsed *are not* freed, and enq *is
+// not* reset.
+//
 // We're not treating the input as anything but ASCII text, though it's almost
 // certainly UTF8. Need to ensure that newlines and pattern tags are all
 // strictly ASCII or change how we handle things FIXME.
-static void *
-parse_chunk(void *vpp){
-	const char *start,*c,*end,*delim,*pname,*pver,*veryend;
-	struct pkgparse *pp = vpp;
-	size_t offset = 0; // FIXME
-	unsigned packages = 0;
-	pkgobj *head,*po,**enq;
+static int
+parse_chunk(size_t offset,const char *start,const char *end,
+			const char *veryend,pkgobj ***enq){
+	const char *expect,*pname,*pver,*c,*delim;
 	size_t pnamelen,pverlen;
-	int state;
+	int rewardstate,state;
+	unsigned newp = 0;
+	pkgobj *po;
+
+	// First, find the start of our chunk:
+	//  - If we are offset 0, we are at the start of our chunk
+	//  - Otherwise, if the previous two characters (those preceding our
+	//     chunk) are newlines, we are at the start of our chunk,
+	//  - Otherwise, if the first character is a newline, and the previous
+	//     character is a newline, we are at the start of our chunk
+	//  - Otherwise, our chunk starts at the first double newline
+	if(offset){
+		// We can be in one of two states: we know the previous
+		// character to have been a newline, or we don't.
+		state = STATE_PDATA;
+		//assert(pp->csize > 2); // sanity check
+		for(c = start - 2 ; c < end ; ++c){
+			if(*c == '\n'){
+				if(state == STATE_NLINE){
+					++c;
+					break;
+				}
+				state = STATE_NLINE;
+			}else{
+				state = STATE_PDATA;
+			}
+		}
+	}else{
+		c = start;
+	}
+	// We are at the beginning of our chunk, which might be 0 bytes. Any
+	// partial record with which our map started has been skipped
+	// Upon reaching the (optional, only one allowed) delimiter on each
+	// line, delim will be updated to point one past that delimiter (which
+	// might be outside the chunk!), and to chew whitespace.
+	delim = NULL;
+	expect = NULL;
+	// We hand create_package our raw map bytes; it allocates the destbuf.
+	// These are thus reset on each package.
+	pname = NULL; pver = NULL;
+	pnamelen = 0; pverlen = 0;
+	state = STATE_RESET; // number of newlines we've seen, bounded by 2
+	while(c < end || (state != STATE_RESET && c < veryend)){
+		if(*c == '\n'){ // State machine is driven by newlines
+			if(state == STATE_NLINE){ // double newline
+				if(pname == NULL || pnamelen == 0){
+					return -1; // No package name
+				}
+				if(pver == NULL || pverlen == 0){
+					return -1; // No package version
+				}
+				if((po = create_package(pname,pnamelen,pver,pverlen)) == NULL){
+					return -1;
+				}
+				// Package ended!
+				++newp;
+				**enq = po;
+				*enq = &po->next;
+				pname = NULL;
+				pver = NULL;
+				state = STATE_RESET;
+			}else{ // We processed a line of the current package
+				if(state == STATE_PACKAGE_DELIMITED){
+// Don't allow a package to be named twice. Defined another way, require an
+// empty line between every two instances of a Package: line.
+					if(pname){
+						return -1;
+					}
+					pnamelen = c - delim;
+					pname = delim;
+				}else if(state == STATE_VERSION_DELIMITED){
+					if(pver){
+						return -1;
+					}
+					pverlen = c - delim;
+					pver = delim;
+				}
+				state = STATE_NLINE;
+			}
+		}else switch(state){ // not a newline
+			case STATE_NLINE:
+			case STATE_RESET:
+				delim = NULL;
+				start = c;
+				if(*c == 'V'){
+					state = STATE_EXPECT;
+					expect = "ersion:";
+					rewardstate = STATE_VERSION_DELIMITED;
+				}else if(*c == 'P'){
+					state = STATE_EXPECT;
+					expect = "ackage:";
+					rewardstate = STATE_PACKAGE_DELIMITED;
+				}else{
+					state = STATE_PDATA;
+				}
+				break;
+			case STATE_EXPECT:
+				if(*c == *expect){
+					if(!*++expect){
+						state = STATE_DELIM;
+						delim = c + 1;
+					}
+				}else{
+					state = STATE_PDATA;
+				}
+				break;
+			case STATE_DELIM:
+				if(isspace(*c)){
+					++delim;
+				}else{
+					state = rewardstate;
+				}
+				break;
+		}
+		++c;
+	}
+	if(state != STATE_RESET){
+		return -1;
+	}
+	return newp;
+}
+
+static void *
+parse_chunks(void *vpp){
+	const char *start,*end,*veryend;
+	struct pkgparse *pp = vpp;
+	pkgobj *head,**enq,*po;
+	unsigned packages = 0;
+	size_t offset;
 
 	head = NULL;
+	enq = &head;
 	offset = get_new_offset(pp);
 	// We can go past the end of our chunk to finish a package's parsing
 	// in media res, but we can't go past the end of the actual map!
 	veryend = (const char *)pp->mem + pp->len;
 	while(offset < pp->len){
+		int newp;
+
 		start = (const char *)pp->mem + offset;
 		if(pp->csize + offset > pp->len){
 			end = start + (pp->len - offset);
 		}else{
 			end = start + pp->csize;
 		}
-		const char *expect;
-		int rewardstate;
-
-		// First, find the start of our chunk:
-		//  - If we are offset 0, we are at the start of our chunk
-		//  - Otherwise, if the previous two characters (those preceding our
-		//     chunk) are newlines, we are at the start of our chunk,
-		//  - Otherwise, if the first character is a newline, and the previous
-		//     character is a newline, we are at the start of our chunk
-		//  - Otherwise, our chunk starts at the first double newline
-		if(offset){
-			// We can be in one of two states: we know the previous
-			// character to have been a newline, or we don't.
-			state = STATE_PDATA;
-			assert(pp->csize > 2); // sanity check
-			for(c = start - 2 ; c < end ; ++c){
-				if(*c == '\n'){
-					if(state == STATE_NLINE){
-						++c;
-						break;
-					}
-					state = STATE_NLINE;
-				}else{
-					state = STATE_PDATA;
-				}
-			}
-		}else{
-			c = start;
+		newp = parse_chunk(offset,start,end,veryend,&enq);
+		if(newp < 0){
+			goto err;
 		}
-
-		enq = &head;
-		// We are at the beginning of our chunk, which might be 0 bytes. Any
-		// partial record with which our map started has been skipped
-		// Upon reaching the (optional, only one allowed) delimiter on each
-		// line, delim will be updated to point one past that delimiter (which
-		// might be outside the chunk!), and to chew whitespace.
-		delim = NULL;
-		expect = NULL;
-		// We hand create_package our raw map bytes; it allocates the destbuf.
-		// These are thus reset on each package.
-		pname = NULL; pver = NULL;
-		pnamelen = 0; pverlen = 0;
-		state = STATE_RESET; // number of newlines we've seen, bounded by 2
-		while(c < end || (state != STATE_RESET && c < veryend)){
-			if(*c == '\n'){ // State machine is driven by newlines
-				if(state == STATE_NLINE){ // double newline
-					if(pname == NULL || pnamelen == 0){
-						goto err; // No package name
-					}
-					if(pver == NULL || pverlen == 0){
-						goto err; // No package version
-					}
-					if((po = create_package(pname,pnamelen,pver,pverlen)) == NULL){
-						goto err;
-					}
-					// Package ended!
-					++packages;
-					*enq = po;
-					enq = &po->next;
-					pname = NULL;
-					pver = NULL;
-					state = STATE_RESET;
-				}else{ // We processed a line of the current package
-					if(state == STATE_PACKAGE_DELIMITED){
-// Don't allow a package to be named twice. Defined another way, require an
-// empty line between every two instances of a Package: line.
-						if(pname){
-							goto err;
-						}
-						pnamelen = c - delim;
-						pname = delim;
-					}else if(state == STATE_VERSION_DELIMITED){
-						if(pver){
-							goto err;
-						}
-						pverlen = c - delim;
-						pver = delim;
-					}
-					state = STATE_NLINE;
-				}
-			}else switch(state){ // not a newline
-				case STATE_NLINE:
-				case STATE_RESET:
-					delim = NULL;
-					start = c;
-					if(*c == 'V'){
-						state = STATE_EXPECT;
-						expect = "ersion:";
-						rewardstate = STATE_VERSION_DELIMITED;
-					}else if(*c == 'P'){
-						state = STATE_EXPECT;
-						expect = "ackage:";
-						rewardstate = STATE_PACKAGE_DELIMITED;
-					}else{
-						state = STATE_PDATA;
-					}
-					break;
-				case STATE_EXPECT:
-					if(*c == *expect){
-						if(!*++expect){
-							state = STATE_DELIM;
-							delim = c + 1;
-						}
-					}else{
-						state = STATE_PDATA;
-					}
-					break;
-				case STATE_DELIM:
-					if(isspace(*c)){
-						++delim;
-					}else{
-						state = rewardstate;
-					}
-					break;
-			}
-			++c;
-		}
-		if(state != STATE_RESET){
-			goto err; // map ended in the middle of a package
-		}
+		packages += newp;
 		offset = get_new_offset(pp);
 	}
 	if(head){
@@ -392,7 +409,7 @@ parse_map(pkglist *pl,const void *mem,size_t len,int *err){
 		*err = r;
 		return -1;
 	}
-	if(blossom_per_pe(&bctl,&bs,NULL,parse_chunk,&pp)){
+	if(blossom_per_pe(&bctl,&bs,NULL,parse_chunks,&pp)){
 		*err = errno;
 		pthread_mutex_destroy(&pp.lock);
 		return -1;
