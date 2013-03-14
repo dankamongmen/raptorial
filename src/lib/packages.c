@@ -607,6 +607,11 @@ free_package_cache(pkgcache *pc){
 }
 
 PUBLIC pkglist *
+parse_status_file(const char *path,int *err){
+	return parse_packages_file(path,err);
+}
+
+PUBLIC pkglist *
 pkgcache_begin(pkgcache *pc){
 	return pc->lists;
 }
