@@ -96,6 +96,8 @@ int main(int argc,char **argv){
 					continue;
 				}
 			}
+			// Associate with package from status file and print
+			// upgrade info as available FIXME
 			printf("%s/%s %s\n",pkgobj_name(po),
 				pkglist_dist(pl),pkgobj_version(po));
 		}
