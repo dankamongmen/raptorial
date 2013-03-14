@@ -31,8 +31,8 @@ Components include, or will include:
  - rapt-get. A drop-in, high-performance replacement for apt-get, making use
             of libraptorial.
 
- - rapt-file. An drop-in, high-performance replacement for apt-file, making use
-            of libraptorial.
+ - raptorial-file. An drop-in, high-performance replacement for apt-file,
+            making use of libraptorial.
 
  - raptitude. An ncurses-based package manager, similar in spirit to (but not
               a drop-in replacement for) aptitude.
