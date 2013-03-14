@@ -78,11 +78,22 @@ int main(int argc,char **argv){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",listdir,strerror(err));
 		return EXIT_FAILURE;
 	}
-	// FIXME handle argv restrictions on output
 	for(pl = pkgcache_begin(pc) ; pl ; pl = pkgcache_next(pl)){
 		for(po = pkglist_begin(pl) ; po ; po = pkglist_next(po)){
+			char **filters = argv + optind;
+
+			if(*filters){
+				do{
+					if(strcmp(*filters,pkgobj_name(po)) == 0){
+						break;
+					}
+				}while(*++filters);
+				if(!*filters){
+					continue;
+				}
+			}
 			printf("%s/%s %s\n",pkgobj_name(po),
-					pkglist_dist(pl),pkgobj_version(po));
+				pkglist_dist(pl),pkgobj_version(po));
 		}
 	}
 	free_package_cache(pc);
