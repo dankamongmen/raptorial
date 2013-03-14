@@ -316,6 +316,7 @@ parse_dir(void *vdp){
 
 	while(readdir_r(dp->dir,&dent,&pdent) == 0){
 		const char *suffixes[] = { "Sources", "Packages", NULL },**suffix;
+		const char *distdelim,*dist;
 		pkglist *pl;
 
 		if(pdent == NULL){
@@ -323,6 +324,13 @@ parse_dir(void *vdp){
 		}
 		if(dent.d_type != DT_REG && dent.d_type != DT_LNK){
 			continue; // FIXME maybe don't skip DT_UNKNOWN?
+		}
+		if((dist = strstr(dent.d_name,"_dists_")) == NULL){
+			continue;
+		}
+		dist += strlen("_dists_");
+		if((distdelim = strchr(dist,'_')) == NULL){
+			continue;
 		}
 		for(suffix = suffixes ; *suffix ; ++suffix){
 			if(strlen(dent.d_name) < strlen(*suffix)){
@@ -332,6 +340,10 @@ parse_dir(void *vdp){
 				int err;
 
 				if((pl = parse_packages_file(dent.d_name,&err)) == NULL){
+					return NULL;
+				}
+				if((pl->distribution = strndup(dist,distdelim - dist)) == NULL){
+					free_package_list(pl);
 					return NULL;
 				}
 				pthread_mutex_lock(&dp->lock);
@@ -561,7 +573,11 @@ parse_packages_mem(const void *mem,size_t len,int *err){
 
 PUBLIC void
 free_package_list(pkglist *pl){
-	free(pl);
+	if(pl){
+		free(pl->distribution);
+		free(pl->arch);
+		free(pl);
+	}
 }
 
 PUBLIC pkgcache *
