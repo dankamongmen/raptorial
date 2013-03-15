@@ -66,8 +66,8 @@ PUBLIC void free_package_cache(struct pkgcache *);
 PUBLIC struct pkglist *
 parse_status_file(const char *,int *);
 
-PUBLIC struct pkglist *
-pkgcache_begin(struct pkgcache *);
+PUBLIC const struct pkglist *
+pkgcache_begin(const struct pkgcache *);
 
 PUBLIC const struct pkglist *
 pkgcache_next(const struct pkglist *);
@@ -80,6 +80,9 @@ pkglist_next(const struct pkgobj *);
 
 PUBLIC const struct pkgobj *
 pkglist_find(const struct pkglist *,const char *);
+
+PUBLIC const struct pkgobj *
+pkgcache_find_newest(const struct pkgcache *,const char *,const struct pkglist **);
 
 PUBLIC const char *
 pkgobj_name(const struct pkgobj *);

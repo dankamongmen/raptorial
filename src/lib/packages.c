@@ -547,8 +547,8 @@ parse_status_file(const char *path,int *err){
 	return parse_packages_file_internal(path,err,1);
 }
 
-PUBLIC pkglist *
-pkgcache_begin(pkgcache *pc){
+PUBLIC const pkglist *
+pkgcache_begin(const pkgcache *pc){
 	return pc->lists;
 }
 
@@ -739,5 +739,11 @@ parse_packages_dir(const char *dir,int *err){
 PUBLIC const pkgobj *
 pkglist_find(const pkglist *pl,const char *pkg){
 	assert(pl && pkg); // FIXME
+	return NULL;
+}
+
+PUBLIC const struct pkgobj *
+pkgcache_find_newest(const pkgcache *pc,const char *pkg,const pkglist **pl){
+	assert(pc && pl && pkg); // FIXME
 	return NULL;
 }
