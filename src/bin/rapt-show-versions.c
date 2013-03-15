@@ -19,13 +19,14 @@ usage(FILE *out,const char *name){
 }
 
 static int
-all_output(const char **argv,struct pkgcache *pc,struct pkglist *stat){
+all_output(const char **argv,const struct pkgcache *pc,
+			const struct pkglist *stat){
 	do{
 		const struct pkglist *pl;
 		const struct pkgobj *po;
 
 		if((po = pkglist_find(stat,*argv)) == NULL){
-			if(printf("Not installed\n") < 0){
+			if(printf("%s not installed\n",*argv) < 0){
 				return -1;
 			}
 		}else{
@@ -49,7 +50,8 @@ all_output(const char **argv,struct pkgcache *pc,struct pkglist *stat){
 }
 
 static int
-filtered_output(const char **argv,struct pkglist *stat){
+filtered_output(const char **argv,const struct pkgcache *pc,
+				const struct pkglist *stat){
 	do{
 		const struct pkgobj *po;
 
@@ -58,7 +60,24 @@ filtered_output(const char **argv,struct pkglist *stat){
 				return -1;
 			}
 		}else{
-			// FIXME print status
+			const struct pkgobj *newpo;
+			const struct pkglist *pl;
+
+			if((newpo = pkgcache_find_newest(pc,*argv,&pl)) == NULL){
+				newpo = po;
+				pl = stat;
+			}
+			if(strcmp(pkgobj_version(newpo),pkgobj_version(po)) == 0){
+				if(printf("%s/%s upgradeable from %s to %s\n",
+							*argv,pkglist_dist(pl),
+							pkgobj_version(po),
+							pkgobj_version(newpo)) < 0){
+					return -1;
+				}
+			}else if(printf("%s/%s uptodate %s\n",*argv,pkglist_dist(pl),
+						pkgobj_version(po)) < 0){
+				return -1;
+			}
 		}
 	}while(*++argv);
 	return 0;
@@ -132,7 +151,7 @@ int main(int argc,char **argv){
 			if(all_output((const char **)(argv + optind),pc,stat) < 0){
 				return EXIT_FAILURE;
 			}
-		}else if(filtered_output((const char **)(argv + optind),stat) < 0){
+		}else if(filtered_output((const char **)(argv + optind),pc,stat) < 0){
 			return EXIT_FAILURE;
 		}
 	}else{
