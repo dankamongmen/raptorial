@@ -240,7 +240,6 @@ parse_chunk(size_t offset,const char *start,const char *end,
 				}
 				pnamelen = c - delim;
 				pname = delim;
-				state = STATE_NLINE;
 				break;
 			case STATE_VERSION_DELIMITED:
 				if(pver){
@@ -248,7 +247,6 @@ parse_chunk(size_t offset,const char *start,const char *end,
 				}
 				pverlen = c - delim;
 				pver = delim;
-				state = STATE_NLINE;
 				break;
 			case STATE_STATUS_DELIMITED:
 				if(pstatus){
@@ -739,11 +737,13 @@ parse_packages_dir(const char *dir,int *err){
 PUBLIC const pkgobj *
 pkglist_find(const pkglist *pl,const char *pkg){
 	assert(pl && pkg); // FIXME
+	// FIXME do binary search on provided list
 	return NULL;
 }
 
 PUBLIC const struct pkgobj *
 pkgcache_find_newest(const pkgcache *pc,const char *pkg,const pkglist **pl){
 	assert(pc && pl && pkg); // FIXME
+	// FIXME do pkglist_find()s in parallel on all lists
 	return NULL;
 }
