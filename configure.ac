@@ -7,7 +7,6 @@ AM_INIT_AUTOMAKE([-Wall foreign dist-xz std-options subdir-objects nostdinc colo
 AC_CONFIG_SRCDIR([src/lib/raptorial.h])
 
 ## compiler check
-CXXFLAGS="-O2 -Wall -W"
 AC_PROG_CXX
 AC_PROG_CC
 AC_PROG_CC_C99
