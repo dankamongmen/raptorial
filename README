@@ -43,8 +43,8 @@ Components include, or will include:
 It will also be possible to compile and link tools such as apt-get and aptitude
 against librapt (and indeed this is regularly done to test compatibility). The
 maximum performance, however, will be seen by using raptorial-native tools such
-as rapt-get and rapt-file, since certain design choices in libapt do not allow
-robust, safe, high-performance operation.
+as rapt-get and raptorial-file, since certain design choices in libapt do not
+allow robust, safe, high-performance operation.
 
 ------------.
 Requirements|
