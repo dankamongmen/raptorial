@@ -94,6 +94,8 @@ int main(int argc,char **argv){
 	if(listdir == NULL){
 		listdir = raptorial_def_lists_dir();
 	}
+	// FIXME can we not parse the status file in parallel with the package
+	// lists? surely we can.
 	if((stat = parse_status_file(statusfile,&err)) == NULL){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",statusfile,strerror(err));
 		return EXIT_FAILURE;
