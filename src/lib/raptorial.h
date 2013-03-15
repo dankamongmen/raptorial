@@ -69,20 +69,17 @@ parse_status_file(const char *,int *);
 PUBLIC struct pkglist *
 pkgcache_begin(struct pkgcache *);
 
-PUBLIC struct pkglist *
-pkgcache_next(struct pkglist *);
-
-PUBLIC struct pkgobj *
-pkglist_begin(struct pkglist *);
-
-PUBLIC struct pkgobj *
-pkglist_next(struct pkgobj *);
+PUBLIC const struct pkglist *
+pkgcache_next(const struct pkglist *);
 
 PUBLIC const struct pkgobj *
-pkglist_cbegin(const struct pkglist *);
+pkglist_begin(const struct pkglist *);
 
 PUBLIC const struct pkgobj *
-pkglist_cnext(const struct pkgobj *);
+pkglist_next(const struct pkgobj *);
+
+PUBLIC const struct pkgobj *
+pkglist_find(const struct pkglist *,const char *);
 
 PUBLIC const char *
 pkgobj_name(const struct pkgobj *);

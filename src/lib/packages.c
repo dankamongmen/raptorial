@@ -77,9 +77,15 @@ create_package(const char *name,size_t namelen,const char *ver,size_t verlen,
 	pkgobj *po;
 
 	if( (po = malloc(sizeof(*po))) ){
-		if((po->version = malloc(sizeof(*po->version) * (verlen + 1))) == NULL){
-			free(po);
-			return NULL;
+		if(ver){
+			if((po->version = malloc(sizeof(*po->version) * (verlen + 1))) == NULL){
+				free(po);
+				return NULL;
+			}
+			strncpy(po->version,ver,verlen);
+			po->version[verlen] = '\0';
+		}else{
+			po->version = NULL;
 		}
 		if((po->name = malloc(sizeof(*po->name) * (namelen + 1))) == NULL){
 			free(po->version);
@@ -98,8 +104,6 @@ create_package(const char *name,size_t namelen,const char *ver,size_t verlen,
 		}else{
 			po->status = NULL;
 		}
-		strncpy(po->version,ver,verlen);
-		po->version[verlen] = '\0';
 		strncpy(po->name,name,namelen);
 		po->name[namelen] = '\0';
 	}
@@ -202,15 +206,17 @@ parse_chunk(size_t offset,const char *start,const char *end,
 				if(pname == NULL || pnamelen == 0){
 					return -1; // No package name
 				}
-				if(pver == NULL || pverlen == 0){
-					return -1; // No package version
-				}
 				if(statusfile){
 					if(pstatus == NULL || pstatuslen == 0){
 						return -1; // No package status
 					}
-				}else if(pstatus){
-					return -1; // Status in package list
+				}else{
+				       	if(pstatus){
+						return -1; // Status in package list
+					}
+					if(pver == NULL || pverlen == 0){
+						return -1; // No package version
+					}
 				}
 				if((po = create_package(pname,pnamelen,pver,pverlen,
 								pstatus,pstatuslen)) == NULL){
@@ -545,28 +551,18 @@ pkgcache_begin(pkgcache *pc){
 	return pc->lists;
 }
 
-PUBLIC pkglist *
-pkgcache_next(pkglist *pl){
+PUBLIC const pkglist *
+pkgcache_next(const pkglist *pl){
 	return pl->next;
 }
 
-PUBLIC pkgobj *
-pkglist_begin(pkglist *pl){
-	return pl->pobjs;
-}
-
-PUBLIC pkgobj *
-pkglist_next(pkgobj *po){
-	return po->next;
-}
-
 PUBLIC const pkgobj *
-pkglist_cbegin(const pkglist *pl){
+pkglist_begin(const pkglist *pl){
 	return pl->pobjs;
 }
 
 PUBLIC const pkgobj *
-pkglist_cnext(const pkgobj *po){
+pkglist_next(const pkgobj *po){
 	return po->next;
 }
 
@@ -720,4 +716,10 @@ parse_packages_dir(const char *dir,int *err){
 		return NULL;
 	}
 	return pc;
+}
+
+PUBLIC const pkgobj *
+pkglist_find(const pkglist *pl,const char *pkg){
+	assert(pl && pkg); // FIXME
+	return NULL;
 }

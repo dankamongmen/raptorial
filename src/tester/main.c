@@ -9,9 +9,9 @@ usage(const char *name){
 }
 
 int main(int argc,char **argv){
+	const struct pkglist *pl;
+	const struct pkgobj *po;
 	struct pkgcache *pc;
-	struct pkglist *pl;
-	struct pkgobj *po;
 	unsigned pkgs;
 	int err;
 
