@@ -83,6 +83,28 @@ filtered_output(const char **argv,const struct pkgcache *pc,
 	return 0;
 }
 
+static int
+installed_output(const struct pkgcache *pc,const struct pkglist *stat){
+	const struct pkgobj *po;
+
+	for(po = pkglist_begin(stat) ; po ; po = pkglist_next(po)){
+		const struct pkgobj *newpo;
+		const struct pkglist *pl;
+
+		if((newpo = pkgcache_find_newest(pc,pkgobj_name(po),&pl)) == NULL){
+			if(printf("%s %s %s: No available version in archive\n",
+					pkgobj_name(po),pkgobj_version(po),
+					pkgobj_status(po)) < 0){
+				return -1;
+			}
+		}else if(printf("%s/%s %s %s\n",pkgobj_name(po),pkglist_dist(pl),
+				pkgobj_status(po),pkgobj_version(po)) < 0){
+			return -1;
+		}
+	}
+	return 0;
+}
+
 // There's no need to free up the structures on exit -- the OS reclaims that
 // memory. If this code is embedded elsewhere, however, make use of
 // free_package_list() and free_package_cache() as appropriate.
@@ -155,17 +177,8 @@ int main(int argc,char **argv){
 			return EXIT_FAILURE;
 		}
 	}else{
-		const struct pkglist *pl;
-
-		for(pl = pkgcache_begin(pc) ; pl ; pl = pkgcache_next(pl)){
-			const struct pkgobj *po;
-
-			for(po = pkglist_begin(pl) ; po ; po = pkglist_next(po)){
-				// Associate with package from status file and print
-				// upgrade info as available FIXME
-				printf("%s/%s %s\n",pkgobj_name(po),
-					pkglist_dist(pl),pkgobj_version(po));
-			}
+		if(installed_output(pc,stat) < 0){
+			return EXIT_FAILURE;
 		}
 	}
 	return EXIT_SUCCESS;
