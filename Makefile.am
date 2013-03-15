@@ -34,7 +34,7 @@ rapt_show_versions_SOURCES = src/bin/rapt-show-versions.c
 rapt_show_versions_LDADD = libraptorial.la
 
 raptorial_file_SOURCES = src/bin/raptorial-file.c
-raptorial_LDADD = libraptorial.la
+raptorial_file_LDADD = libraptorial.la
 
 check: $(srcdir)/tests/Packages $(bin_PROGRAMS)
 	./raptorial-tester $(srcdir)/tests/Packages
