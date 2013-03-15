@@ -124,7 +124,7 @@ int main(int argc,char **argv){
 
 	listdir = NULL;
 	statusfile = NULL;
-	while((c = getopt_long(argc,argv,"s:l:p:vah",longopts,&optind)) != -1){
+	while((c = getopt_long(argc,argv,"s:l:ah",longopts,&optind)) != -1){
 		switch(c){
 			case 'h':
 				usage(stdout,argv[0]);
