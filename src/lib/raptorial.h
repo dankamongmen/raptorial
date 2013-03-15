@@ -85,7 +85,15 @@ PUBLIC const char *
 pkgobj_name(const struct pkgobj *);
 
 PUBLIC const char *
+pkglist_uri(const struct pkglist *);
+
+PUBLIC const char *
 pkglist_dist(const struct pkglist *);
+
+// Returns a status string when applied to a pkgobj from the status pkglist.
+// Otherwise, returns NULL.
+PUBLIC const char *
+pkgobj_status(const struct pkgobj *);
 
 PUBLIC const char *
 pkgobj_version(const struct pkgobj *);

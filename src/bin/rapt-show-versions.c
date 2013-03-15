@@ -18,21 +18,44 @@ usage(FILE *out,const char *name){
 	fprintf(out," -h|--help               Display this usage summary\n");
 }
 
-#include <assert.h>
 static int
-filtered_output(const char **argv,struct pkgcache *pc,struct pkglist *stat,
-					int allversions){
-	const struct pkgobj *po;
-
-	assert(pc);
+all_output(const char **argv,struct pkgcache *pc,struct pkglist *stat){
 	do{
+		const struct pkglist *pl;
+		const struct pkgobj *po;
+
 		if((po = pkglist_find(stat,*argv)) == NULL){
-			if(!allversions){
-				if(printf("%s not installed\n",*argv) < 0){
+			if(printf("Not installed\n") < 0){
+				return -1;
+			}
+		}else{
+			if(printf("%s %s %s\n",*argv,pkgobj_version(po),
+						pkgobj_status(po)) < 0){
+				return -1;
+			}
+		}
+		for(pl = pkgcache_begin(pc) ; pl ; pl = pkgcache_next(pl)){
+			if( (po = pkglist_find(pl,*argv)) ){
+				if(printf("%s %s %s %s\n",*argv,
+						pkgobj_version(po),
+						pkglist_dist(pl),
+						pkglist_uri(pl)) < 0){
 					return -1;
 				}
-			}else{
-				// FIXME print all versions
+			}
+		}
+	}while(*++argv);
+	return 0;
+}
+
+static int
+filtered_output(const char **argv,struct pkglist *stat){
+	do{
+		const struct pkgobj *po;
+
+		if((po = pkglist_find(stat,*argv)) == NULL){
+			if(printf("%s not installed\n",*argv) < 0){
+				return -1;
 			}
 		}else{
 			// FIXME print status
@@ -105,7 +128,11 @@ int main(int argc,char **argv){
 		return EXIT_FAILURE;
 	}
 	if(argv[optind]){
-		if(filtered_output((const char **)(argv + optind),pc,stat,allversions) < 0){
+		if(allversions){
+			if(all_output((const char **)(argv + optind),pc,stat) < 0){
+				return EXIT_FAILURE;
+			}
+		}else if(filtered_output((const char **)(argv + optind),stat) < 0){
 			return EXIT_FAILURE;
 		}
 	}else{

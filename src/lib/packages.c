@@ -35,7 +35,7 @@ typedef struct pkglist {
 	pkgobj *pobjs;
 	unsigned pcount;
 	struct pkglist *next;
-	char *arch,*distribution;
+	char *uri,*arch,*distribution;
 } pkglist;
 
 // Contains >= 1 components and >= 1 architectures. Parameterized by (at least)
@@ -511,6 +511,7 @@ free_package_list(pkglist *pl){
 	if(pl){
 		free(pl->distribution);
 		free(pl->arch);
+		free(pl->uri);
 		free(pl);
 	}
 }
@@ -556,6 +557,11 @@ pkgcache_next(const pkglist *pl){
 	return pl->next;
 }
 
+PUBLIC const char *
+pkglist_uri(const pkglist *pl){
+	return pl->uri;
+}
+
 PUBLIC const pkgobj *
 pkglist_begin(const pkglist *pl){
 	return pl->pobjs;
@@ -569,6 +575,11 @@ pkglist_next(const pkgobj *po){
 PUBLIC const char *
 pkgobj_name(const pkgobj *po){
 	return po->name;
+}
+
+PUBLIC const char *
+pkgobj_status(const pkgobj *po){
+	return po->status;
 }
 
 PUBLIC const char *
@@ -602,7 +613,7 @@ parse_dir(void *vdp){
 
 	while(readdir_r(dp->dir,&dent,&pdent) == 0){
 		const char *suffixes[] = { "Sources", "Packages", NULL },**suffix;
-		const char *distdelim,*dist;
+		const char *distdelim,*dist,*uridelim;
 		pkglist *pl;
 
 		if(pdent == NULL){
@@ -611,7 +622,10 @@ parse_dir(void *vdp){
 		if(dent.d_type != DT_REG && dent.d_type != DT_LNK){
 			continue; // FIXME maybe don't skip DT_UNKNOWN?
 		}
-		if((dist = strstr(dent.d_name,"_dists_")) == NULL){
+		if((uridelim = strchr(dent.d_name,'_')) == NULL){
+			continue;
+		}
+		if((dist = strstr(uridelim,"_dists_")) == NULL){
 			continue;
 		}
 		dist += strlen("_dists_");
@@ -629,6 +643,10 @@ parse_dir(void *vdp){
 					return NULL;
 				}
 				if((pl->distribution = strndup(dist,distdelim - dist)) == NULL){
+					free_package_list(pl);
+					return NULL;
+				}
+				if((pl->uri = strndup(dent.d_name,uridelim - dist)) == NULL){
 					free_package_list(pl);
 					return NULL;
 				}
