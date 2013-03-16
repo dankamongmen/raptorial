@@ -29,6 +29,7 @@ extern "C" {
 
 #include <stddef.h>
 
+struct dfa;
 struct pkgobj;
 struct pkglist;
 struct pkgcache;
@@ -109,6 +110,12 @@ raptorial_def_lists_dir(void);
 
 PUBLIC const char *
 raptorial_def_status_file(void);
+
+PUBLIC int
+augment_dfa(struct dfa **,const char *,void *);
+
+PUBLIC void
+free_dfa(struct dfa *);
 
 #ifdef __cplusplus
 }
