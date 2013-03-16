@@ -107,14 +107,19 @@ installed_output(const struct pkgcache *pc,const struct pkglist *stat){
 	return 0;
 }
 
+struct ppsfmarsh {
+	const char *statusfile;
+};
+
 static void *
-par_parse_status_file(void *statusfile){
+par_parse_status_file(void *vppsf){
+	const struct ppsfmarsh *ppsfmarsh = vppsf;
 	struct pkglist *stat;
 	int err;
 
-	if((stat = parse_status_file(statusfile,&err,NULL)) == NULL){
+	if((stat = parse_status_file(ppsfmarsh->statusfile,&err,NULL)) == NULL){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",
-			(const char *)statusfile,strerror(err));
+			ppsfmarsh->statusfile,strerror(err));
 	}
 	return stat;
 }
@@ -130,6 +135,7 @@ int main(int argc,char **argv){
 		{ "help", 0, NULL, 'h' },
 		{ NULL, 0, NULL, 0 }
 	};
+	struct ppsfmarsh ppsf;
 	const char *listdir;
 	struct pkglist *stat;
 	int allversions = 0;
@@ -177,7 +183,8 @@ int main(int argc,char **argv){
 	if(listdir == NULL){
 		listdir = raptorial_def_lists_dir();
 	}
-	if(pthread_create(&tid,NULL,par_parse_status_file,statusfile)){
+	ppsf.statusfile = statusfile;
+	if(pthread_create(&tid,NULL,par_parse_status_file,&ppsf)){
 		fprintf(stderr,"Couldn't launch status-lexing thread\n");
 		return EXIT_FAILURE;
 	}
