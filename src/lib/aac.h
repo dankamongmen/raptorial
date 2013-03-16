@@ -8,25 +8,18 @@ extern "C" {
 #include <stdlib.h>
 
 struct dfa;
+struct dfavtx;
 
 int augment_dfa(struct dfa **);
 
 void free_dfa(struct dfa *);
 
 typedef struct dfactx {
-	const struct dfa *dfa,*cur;
+	const struct dfa *dfa;
+	const struct dfavtx *cur;
 } dfactx;
 
-static inline dfactx *
-create_dfactx(const struct dfa *dfa){
-	dfactx *dctx;
-
-	if( (dctx = malloc(sizeof(*dctx))) ){
-		dctx->dfa = dfa;
-		dctx->cur = dfa;
-	}
-	return dctx;
-}
+dfactx *create_dfactx(const struct dfa *);
 
 static inline void
 free_dfactx(dfactx *dctx){
