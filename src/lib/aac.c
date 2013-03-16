@@ -61,7 +61,7 @@ edge_search(const dfavtx *node,int s){
 	return pos;
 }
 
-int augment_dfa(dfa **space,const char *str){
+int augment_dfa(dfa **space,const char *str,void *val){
 	const char *s;
 	dfavtx *cur;
 
@@ -115,6 +115,10 @@ int augment_dfa(dfa **space,const char *str){
 			cur->set[pos].vtx = (*space)->vtxcount++;
 		}
 	}
+	if(cur->val){ // Already have this pattern!
+		return -1;
+	}
+	cur->val = val;
 	return 0;
 }
 

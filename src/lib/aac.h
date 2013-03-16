@@ -10,7 +10,7 @@ extern "C" {
 struct dfa;
 struct dfavtx;
 
-int augment_dfa(struct dfa **,const char *);
+int augment_dfa(struct dfa **,const char *,void *);
 
 void free_dfa(struct dfa *);
 
