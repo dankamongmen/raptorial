@@ -743,8 +743,14 @@ parse_packages_dir(const char *dir,int *err,const struct dfa *dfa){
 
 PUBLIC const pkgobj *
 pkglist_find(const pkglist *pl,const char *pkg){
-	assert(pl && pkg); // FIXME
-	// FIXME do binary search on provided list
+	const pkgobj *po;
+
+	// FIXME do binary search on provided list. requires sortedness assurance
+	for(po = pkglist_begin(pl) ; po ; po = pkglist_next(po)){
+		if(strcmp(pkg,pkgobj_name(po)) == 0){
+			return po;
+		}
+	}
 	return NULL;
 }
 
