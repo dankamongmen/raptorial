@@ -92,12 +92,12 @@ filtered_output(const struct pkgcache *pc,const struct pkglist *stat,
 }
 
 static int
-installed_output(const struct pkgcache *pc,const struct pkglist *stat){
+installed_output(const struct pkgcache *pc __attribute__ ((unused)),const struct pkglist *stat){
 	const struct pkgobj *po;
 
 	for(po = pkglist_begin(stat) ; po ; po = pkglist_next(po)){
-		const struct pkgobj *newpo;
-		const struct pkglist *pl;
+		const struct pkglist *pl /*FIXME;*/ = stat;
+		/*const struct pkgobj *newpo;
 
 		if((newpo = pkgcache_find_newest(pc,pkgobj_name(po),&pl)) == NULL){
 			if(printf("%s %s %s: No available version in archive\n",
@@ -105,7 +105,7 @@ installed_output(const struct pkgcache *pc,const struct pkglist *stat){
 					pkgobj_status(po)) < 0){
 				return -1;
 			}
-		}else if(printf("%s/%s %s %s\n",pkgobj_name(po),pkglist_dist(pl),
+		}else */if(printf("%s/%s %s %s\n",pkgobj_name(po),pkglist_dist(pl),
 				pkgobj_status(po),pkgobj_version(po)) < 0){
 			return -1;
 		}
