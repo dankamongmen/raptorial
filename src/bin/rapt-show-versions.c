@@ -1,8 +1,10 @@
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include "config.h"
 #include <getopt.h>
+#include <pthread.h>
 #include <raptorial.h>
 
 static void
@@ -105,6 +107,18 @@ installed_output(const struct pkgcache *pc,const struct pkglist *stat){
 	return 0;
 }
 
+static void *
+par_parse_status_file(void *statusfile){
+	struct pkglist *stat;
+	int err;
+
+	if((stat = parse_status_file(statusfile,&err)) == NULL){
+		fprintf(stderr,"Couldn't parse %s (%s?)\n",
+			(const char *)statusfile,strerror(err));
+	}
+	return stat;
+}
+
 // There's no need to free up the structures on exit -- the OS reclaims that
 // memory. If this code is embedded elsewhere, however, make use of
 // free_package_list() and free_package_cache() as appropriate.
@@ -116,10 +130,12 @@ int main(int argc,char **argv){
 		{ "help", 0, NULL, 'h' },
 		{ NULL, 0, NULL, 0 }
 	};
-	const char *listdir,*statusfile;
+	const char *listdir;
 	struct pkglist *stat;
 	int allversions = 0;
 	struct pkgcache *pc;
+	char *statusfile;
+	pthread_t tid;
 	int err,c;
 
 	listdir = NULL;
@@ -153,19 +169,27 @@ int main(int argc,char **argv){
 		}
 	}
 	if(statusfile == NULL){
-		statusfile = raptorial_def_status_file();
+		if((statusfile = strdup(raptorial_def_status_file())) == NULL){
+			fprintf(stderr,"Couldn't duplicate status file path (%s?)\n",strerror(errno));
+			return EXIT_FAILURE;
+		}
 	}
 	if(listdir == NULL){
 		listdir = raptorial_def_lists_dir();
 	}
-	// FIXME can we not parse the status file in parallel with the package
-	// lists? surely we can.
-	if((stat = parse_status_file(statusfile,&err)) == NULL){
-		fprintf(stderr,"Couldn't parse %s (%s?)\n",statusfile,strerror(err));
+	if(pthread_create(&tid,NULL,par_parse_status_file,statusfile)){
+		fprintf(stderr,"Couldn't launch status-lexing thread\n");
 		return EXIT_FAILURE;
 	}
 	if((pc = parse_packages_dir(listdir,&err)) == NULL){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",listdir,strerror(err));
+		return EXIT_FAILURE;
+	}
+	if(pthread_join(tid,(void **)&stat)){
+		fprintf(stderr,"Couldn't join status-lexing thread\n");
+		return EXIT_FAILURE;
+	}
+	if(stat == NULL){
 		return EXIT_FAILURE;
 	}
 	if(argv[optind]){
