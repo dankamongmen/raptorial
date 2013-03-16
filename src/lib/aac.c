@@ -65,6 +65,9 @@ int augment_dfa(dfa **space,const char *str,void *val){
 	const char *s;
 	dfavtx *cur;
 
+	if(val == NULL){ // can't add a NULL -- how would you check for match?
+		return -1;
+	}
 	if(*space == NULL){
 		if((*space = malloc(sizeof(**space))) == NULL){
 			return -1;
@@ -127,4 +130,23 @@ void free_dfa(dfa *space){
 		free(space->vtxarray);
 		free(space);
 	}
+}
+
+void *match_dfactx_char(dfactx *dctx,int s){
+	unsigned pos = edge_search(dctx->cur,s);
+
+	if(pos < dctx->cur->setsize && dctx->cur->set[pos].label != s){
+		// FIXME take the sigma (failure) function
+		return NULL;
+	}
+	dctx->cur = dctx->dfa->vtxarray + dctx->cur->set[pos].vtx;
+	return dctx->cur->val;
+}
+
+void *match_dfactx_string(dfactx *dctx,const char *str){
+	while(*str){
+		match_dfactx_char(dctx,*str);
+		++str;
+	}
+	return dctx->cur->val;
 }
