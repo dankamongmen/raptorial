@@ -20,7 +20,7 @@ int main(int argc,char **argv){
 		usage(argv[0]);
 		return EXIT_FAILURE;
 	}
-	if((pc = pkgcache_from_pkglist(parse_packages_file(argv[1],&err),&err)) == NULL){
+	if((pc = pkgcache_from_pkglist(parse_packages_file(argv[1],&err,NULL),&err)) == NULL){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",argv[1],strerror(err));
 		return EXIT_FAILURE;
 	}
