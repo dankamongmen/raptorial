@@ -38,18 +38,18 @@ struct pkgcache;
 // On error, NULL is returned, and the error value will be written through; it
 // is otherwise untouched.
 PUBLIC struct pkglist *
-parse_packages_file(const char *,int *);
+parse_packages_file(const char *,int *,const struct dfa *);
 
 // Returns a new package cache object after parsing any package lists found in
 // the specified directory.
 PUBLIC struct pkgcache *
-parse_packages_dir(const char *,int *);
+parse_packages_dir(const char *,int *,const struct dfa *);
 
 // Returns a new package list object after parsing the provided package list.
 // On error, NULL is returned, and the error value will be written through; it
 // is otherwise untouched.
 PUBLIC struct pkglist *
-parse_packages_mem(const void *,size_t,int *);
+parse_packages_mem(const void *,size_t,int *,const struct dfa *);
 
 // Wrap a package list in a single-index cache object. Returns NULL if passed
 // NULL, without modifying err, allowing use in functional composition. Frees
@@ -65,7 +65,7 @@ PUBLIC void free_package_cache(struct pkgcache *);
 // Parse a dpkg status file. On error, NULL is returned and the error value is
 // written through. On success, it is not touched.
 PUBLIC struct pkglist *
-parse_status_file(const char *,int *);
+parse_status_file(const char *,int *,const struct dfa *);
 
 PUBLIC const struct pkglist *
 pkgcache_begin(const struct pkgcache *);
