@@ -26,7 +26,7 @@ typedef struct dfa {
 	unsigned vtxcount,vtxalloc;
 } dfa;
 
-dfactx *create_dfactx(const struct dfa *space){
+dfactx *create_dfactx(const dfa *space){
 	dfactx *dctx;
 
 	if( (dctx = malloc(sizeof(*dctx))) ){
@@ -34,4 +34,11 @@ dfactx *create_dfactx(const struct dfa *space){
 		dctx->cur = space->entry;
 	}
 	return dctx;
+}
+
+void free_dfa(dfa *space){
+	if(space){
+		free(space->vtxarray);
+		free(space);
+	}
 }
