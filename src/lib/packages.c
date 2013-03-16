@@ -754,9 +754,76 @@ pkglist_find(const pkglist *pl,const char *pkg){
 	return NULL;
 }
 
+struct newfindmarsh {
+	const pkgcache *pc;
+	const pkglist *pl,*plfound;
+	const pkgobj *pkg;
+	const char *str;
+	int done;		// Distinguish between two pl == NULL states
+	pthread_mutex_t lock;
+};
+
+static const void *
+par_pkglist_find(void *vnfmarsh){
+	struct newfindmarsh *nfmarsh = vnfmarsh;
+	const pkgobj *po = NULL;
+	const pkglist *pl;
+
+	do{
+		pthread_mutex_lock(&nfmarsh->lock);
+		if(po){ // FIXME compare versions!
+			nfmarsh->plfound = pl;
+			nfmarsh->pkg = po;
+		}
+		if(!nfmarsh->done){
+			if(nfmarsh->pl == NULL){
+				pl = nfmarsh->pl = pkgcache_begin(nfmarsh->pc);
+			}else{
+				pl = nfmarsh->pl = pkgcache_next(nfmarsh->pl);
+			}
+			if(pl == NULL){
+				nfmarsh->done = 1;
+			}
+		}else{
+			pl = NULL;
+		}
+		pthread_mutex_unlock(&nfmarsh->lock);
+		po = pl ? pkglist_find(pl,nfmarsh->str) : NULL;
+	}while(pl);
+	return NULL;
+}
+
 PUBLIC const struct pkgobj *
 pkgcache_find_newest(const pkgcache *pc,const char *pkg,const pkglist **pl){
-	assert(pc && pl && pkg); // FIXME
-	// FIXME do pkglist_find()s in parallel on all lists
-	return NULL;
+	struct newfindmarsh nfmarsh = {
+		.pc = pc,
+		.pl = NULL,
+		.done = 0,
+		.str = pkg,
+		.pkg = NULL,
+		.plfound = NULL,
+	};
+	blossom_state bs;
+	blossom_ctl bctl = {
+		.flags = 0,
+		.tids = 1,
+	};
+
+	if(pthread_mutex_init(&nfmarsh.lock,NULL)){
+		return NULL;
+	}
+	if(blossom_per_pe(&bctl,&bs,NULL,(void *(*)(void *))par_pkglist_find,&nfmarsh)){
+		blossom_join_all(&bs);
+		pthread_mutex_destroy(&nfmarsh.lock);
+		return NULL;
+	}
+	if(blossom_join_all(&bs)){
+		pthread_mutex_destroy(&nfmarsh.lock);
+		return NULL;
+	}
+	if(pthread_mutex_destroy(&nfmarsh.lock)){
+		return NULL;
+	}
+	*pl = nfmarsh.plfound;
+	return nfmarsh.pkg;
 }
