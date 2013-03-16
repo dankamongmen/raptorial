@@ -54,6 +54,7 @@ struct pkgparse {
 	size_t len,csize;
 	// Are we a status file, or a package list?
 	int statusfile;
+	const struct dfa *dfa;
 	pthread_mutex_t lock;
 
 	// These data are modified by threads, and must be protected by the
@@ -355,15 +356,18 @@ err:
 
 struct dirparse {
 	DIR *dir;
+	const struct dfa *dfa;
 	pkgcache *sharedpcache;
 	pthread_mutex_t lock;
 };
 
 // len is the true length, less than or equal to the mapped length.
 static int
-parse_map(pkglist *pl,const void *mem,size_t len,int *err,int statusfile){
+parse_map(pkglist *pl,const void *mem,size_t len,int *err,int statusfile,
+						const struct dfa *dfa){
 	struct pkgparse pp = {
 		.statusfile = statusfile,
+		.dfa = dfa,
 		.mem = mem,
 		.len = len,
 		.offset = 0,
@@ -406,14 +410,15 @@ parse_map(pkglist *pl,const void *mem,size_t len,int *err,int statusfile){
 }
 
 static inline pkglist *
-create_pkglist(const void *mem,size_t len,int *err,int statusfile){
+create_pkglist(const void *mem,size_t len,int *err,int statusfile,
+					const struct dfa *dfa){
 	pkglist *pl;
 
 	if((pl = malloc(sizeof(*pl))) == NULL){
 		*err = errno;
 	}else{
 		memset(pl,0,sizeof(*pl));
-		if(parse_map(pl,mem,len,err,statusfile)){
+		if(parse_map(pl,mem,len,err,statusfile,dfa)){
 			free(pl);
 			return NULL;
 		}
@@ -434,7 +439,8 @@ create_pkgcache(pkglist *pl,int *err){
 }
 
 static pkglist *
-parse_packages_file_internal(const char *path,int *err,int statusfile){
+parse_packages_file_internal(const char *path,int *err,int statusfile,
+					const struct dfa *dfa){
 	const void *map;
 	size_t mlen,len;
 	struct stat st;
@@ -477,7 +483,7 @@ parse_packages_file_internal(const char *path,int *err,int statusfile){
 			return NULL;
 		}
 	}
-	if((pl = create_pkglist(map,len,err,statusfile)) == NULL){
+	if((pl = create_pkglist(map,len,err,statusfile,dfa)) == NULL){
 		close(fd);
 		return NULL;
 	}
@@ -486,19 +492,19 @@ parse_packages_file_internal(const char *path,int *err,int statusfile){
 }
 
 PUBLIC pkglist *
-parse_packages_file(const char *path,int *err){
-	return parse_packages_file_internal(path,err,0);
+parse_packages_file(const char *path,int *err,const struct dfa *dfa){
+	return parse_packages_file_internal(path,err,0,dfa);
 }
 
 PUBLIC pkglist *
-parse_packages_mem(const void *mem,size_t len,int *err){
+parse_packages_mem(const void *mem,size_t len,int *err,const struct dfa *dfa){
 	pkglist *pl;
 
 	if(mem == NULL || len == 0){
 		*err = EINVAL;
 		return NULL;
 	}
-	if((pl = create_pkglist(mem,len,err,0)) == NULL){
+	if((pl = create_pkglist(mem,len,err,0,dfa)) == NULL){
 		return NULL;
 	}
 	return pl;
@@ -541,8 +547,8 @@ free_package_cache(pkgcache *pc){
 }
 
 PUBLIC pkglist *
-parse_status_file(const char *path,int *err){
-	return parse_packages_file_internal(path,err,1);
+parse_status_file(const char *path,int *err,const struct dfa *dfa){
+	return parse_packages_file_internal(path,err,1,dfa);
 }
 
 PUBLIC const pkglist *
@@ -637,7 +643,7 @@ parse_dir(void *vdp){
 			if(strcmp(dent.d_name + strlen(dent.d_name) - strlen(*suffix),*suffix) == 0){
 				int err;
 
-				if((pl = parse_packages_file_internal(dent.d_name,&err,0)) == NULL){
+				if((pl = parse_packages_file_internal(dent.d_name,&err,0,dp->dfa)) == NULL){
 					return NULL;
 				}
 				if((pl->distribution = strndup(dist,distdelim - dist)) == NULL){
@@ -662,9 +668,10 @@ parse_dir(void *vdp){
 
 // len is the true length, less than or equal to the mapped length.
 static int
-parse_listdir(pkgcache *pc,DIR *dir,int *err){
+parse_listdir(pkgcache *pc,DIR *dir,int *err,const struct dfa *dfa){
 	struct dirparse dp = {
 		.dir = dir,
+		.dfa = dfa,
 		.sharedpcache = pc,
 	};
 	blossom_ctl bctl = {
@@ -703,7 +710,7 @@ parse_listdir(pkgcache *pc,DIR *dir,int *err){
 }
 
 PUBLIC pkgcache *
-parse_packages_dir(const char *dir,int *err){
+parse_packages_dir(const char *dir,int *err,const struct dfa *dfa){
 	pkgcache *pc;
 	DIR *d;
 
@@ -722,7 +729,7 @@ parse_packages_dir(const char *dir,int *err){
 		free_package_cache(pc);
 		return NULL;
 	}
-	if(parse_listdir(pc,d,err)){
+	if(parse_listdir(pc,d,err,dfa)){
 		closedir(d);
 		free_package_cache(pc);
 		return NULL;
