@@ -157,3 +157,30 @@ void *match_dfactx_string(dfactx *dctx,const char *str){
 	}
 	return dctx->cur->val;
 }
+
+static int
+recurse_dfa(const dfa *d,const dfavtx *dvtx,char *str,unsigned stroff,
+			int (*cb)(const char *,const void *),const void *opaq){
+	unsigned e;
+
+	if(dvtx->val){
+		str[stroff] = '\0';
+		if(cb(str,opaq)){
+			return -1;
+		}
+	}
+	for(e = 0 ; e < dvtx->setsize ; ++e){
+		str[stroff] = dvtx->set[e].label;
+		if(recurse_dfa(d,d->vtxarray + dvtx->set[e].vtx,str,
+					stroff + 1,cb,opaq)){
+			return -1;
+		}
+	}
+	return 0;
+}
+
+int walk_dfa(const dfa *d,int (*cb)(const char *,const void *),const void *opaq){
+	char str[BUFSIZ]; // FIXME FIXME FIXME needs be as long as longest string
+
+	return recurse_dfa(d,d->vtxarray,str,0,cb,opaq);
+}

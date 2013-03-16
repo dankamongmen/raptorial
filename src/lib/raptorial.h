@@ -117,6 +117,9 @@ augment_dfa(struct dfa **,const char *,void *);
 PUBLIC void
 free_dfa(struct dfa *);
 
+PUBLIC int
+walk_dfa(const struct dfa *,int (*)(const char *,const void *),const void *);
+
 #ifdef __cplusplus
 }
 #endif
