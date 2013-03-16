@@ -12,6 +12,7 @@ int main(int argc,char **argv){
 	const struct pkglist *pl;
 	const struct pkgobj *po;
 	struct pkgcache *pc;
+	struct dfa *dfa;
 	unsigned pkgs;
 	int err;
 
@@ -24,10 +25,14 @@ int main(int argc,char **argv){
 		return EXIT_FAILURE;
 	}
 	pkgs = 0;
+	dfa = NULL;
 	printf("Reported package count: %u\n",pkgcache_count(pc));
 	for(pl = pkgcache_begin(pc) ; pl ; pl = pkgcache_next(pl)){
 		for(po = pkglist_begin(pl) ; po ; po = pkglist_next(po)){
 			printf("%s %s\n",pkgobj_name(po),pkgobj_version(po));
+			if(augment_dfa(&dfa,pkgobj_name(po),main)){
+				return EXIT_FAILURE;
+			}
 			++pkgs;
 		}
 	}

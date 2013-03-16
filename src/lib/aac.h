@@ -10,10 +10,6 @@ extern "C" {
 struct dfa;
 struct dfavtx;
 
-int augment_dfa(struct dfa **,const char *,void *);
-
-void free_dfa(struct dfa *);
-
 typedef struct dfactx {
 	const struct dfa *dfa;
 	const struct dfavtx *cur;
