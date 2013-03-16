@@ -24,8 +24,10 @@ check_PROGRAMS=raptorial-tester
 
 include_HEADERS=src/lib/raptorial.h
 
+noinst_HEADERS=src/lib/aac.h
+
 lib_LTLIBRARIES = libraptorial.la
-libraptorial_la_SOURCES = src/lib/packages.c src/lib/paths.c
+libraptorial_la_SOURCES = src/lib/packages.c src/lib/paths.c src/lib/aac.c
      
 raptorial_tester_SOURCES = src/tester/main.c
 raptorial_tester_LDADD = libraptorial.la
