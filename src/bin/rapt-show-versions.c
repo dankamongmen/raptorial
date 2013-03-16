@@ -21,68 +21,74 @@ usage(FILE *out,const char *name){
 }
 
 static int
-all_output(const char **argv,const struct pkgcache *pc,
-			const struct pkglist *stat){
-	do{
-		const struct pkglist *pl;
+all_output(const struct pkgcache *pc){
+	const struct pkglist *pl;
+
+	for(pl = pkgcache_begin(pc) ; pl ; pl = pkgcache_next(pl)){
 		const struct pkgobj *po;
 
-		if((po = pkglist_find(stat,*argv)) == NULL){
-			if(printf("%s not installed\n",*argv) < 0){
-				return -1;
-			}
-		}else{
-			if(printf("%s %s %s\n",*argv,pkgobj_version(po),
-						pkgobj_status(po)) < 0){
+		for(po = pkglist_begin(pl) ; po ; po = pkglist_next(po)){
+			if(printf("%s %s %s %s\n",pkgobj_name(po),
+					pkgobj_version(po),
+					pkglist_dist(pl),
+					pkglist_uri(pl)) < 0){
 				return -1;
 			}
 		}
-		for(pl = pkgcache_begin(pc) ; pl ; pl = pkgcache_next(pl)){
-			if( (po = pkglist_find(pl,*argv)) ){
-				if(printf("%s %s %s %s\n",*argv,
+	}
+	return 0;
+}
+
+struct focmarsh {
+	const struct pkgcache *pc;
+	const struct pkglist *stat;
+};
+
+static int
+filtered_output_callback(const char *str,const void *opaque){
+	const struct focmarsh *foc = opaque;
+	const struct pkgobj *po,*newpo;
+	const struct pkglist *pl;
+
+	if((po = pkglist_find(foc->stat,str)) == NULL){
+		if((newpo = pkgcache_find_newest(foc->pc,str,&pl)) == NULL){
+			if(printf("%s is neither installed nor available\n",str) < 0){
+				return -1;
+			}
+		}else if(printf("%s is not installed (%s available from %s)\n",
+				str,pkgobj_version(newpo),pkglist_dist(pl)) < 0){
+			return -1;
+		}
+	}else{
+		if((newpo = pkgcache_find_newest(foc->pc,str,&pl)) == NULL){
+			if(printf("%s %s is installed (unavailable)\n",
+						str,pkgobj_version(po)) < 0){
+				return -1;
+			}
+		}else if(strcmp(pkgobj_version(newpo),pkgobj_version(po))){
+			if(printf("%s/%s upgradeable from %s to %s\n",
+						str,pkglist_dist(pl),
 						pkgobj_version(po),
-						pkglist_dist(pl),
-						pkglist_uri(pl)) < 0){
-					return -1;
-				}
+						pkgobj_version(newpo)) < 0){
+				return -1;
 			}
+		}else if(printf("%s/%s uptodate %s\n",str,pkglist_dist(pl),
+					pkgobj_version(po)) < 0){
+			return -1;
 		}
-	}while(*++argv);
+	}
 	return 0;
 }
 
 static int
-filtered_output(const char **argv,const struct pkgcache *pc,
-				const struct pkglist *stat){
-	do{
-		const struct pkgobj *po;
+filtered_output(const struct pkgcache *pc,const struct pkglist *stat,
+					const struct dfa *dfa){
+	struct focmarsh foc = {
+		.pc = pc,
+		.stat = stat,
+	};
 
-		if((po = pkglist_find(stat,*argv)) == NULL){
-			if(printf("%s not installed\n",*argv) < 0){
-				return -1;
-			}
-		}else{
-			const struct pkgobj *newpo;
-			const struct pkglist *pl;
-
-			if((newpo = pkgcache_find_newest(pc,*argv,&pl)) == NULL){
-				newpo = po;
-				pl = stat;
-			}
-			if(strcmp(pkgobj_version(newpo),pkgobj_version(po)) == 0){
-				if(printf("%s/%s upgradeable from %s to %s\n",
-							*argv,pkglist_dist(pl),
-							pkgobj_version(po),
-							pkgobj_version(newpo)) < 0){
-					return -1;
-				}
-			}else if(printf("%s/%s uptodate %s\n",*argv,pkglist_dist(pl),
-						pkgobj_version(po)) < 0){
-				return -1;
-			}
-		}
-	}while(*++argv);
-	return 0;
+	return walk_dfa(dfa,filtered_output_callback,&foc);
 }
 
 static int
@@ -109,6 +115,7 @@ installed_output(const struct pkgcache *pc,const struct pkglist *stat){
 
 struct ppsfmarsh {
 	const char *statusfile;
+	struct dfa *dfa;
 };
 
 static void *
@@ -117,7 +124,7 @@ par_parse_status_file(void *vppsf){
 	struct pkglist *stat;
 	int err;
 
-	if((stat = parse_status_file(ppsfmarsh->statusfile,&err,NULL)) == NULL){
+	if((stat = parse_status_file(ppsfmarsh->statusfile,&err,ppsfmarsh->dfa)) == NULL){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",
 			ppsfmarsh->statusfile,strerror(err));
 	}
@@ -184,6 +191,14 @@ int main(int argc,char **argv){
 		listdir = raptorial_def_lists_dir();
 	}
 	ppsf.statusfile = statusfile;
+	ppsf.dfa = NULL;
+	argv += optind;
+	while(*argv){
+		if(augment_dfa(&ppsf.dfa,*argv,*argv)){
+			return EXIT_FAILURE;
+		}
+		++argv;
+	}
 	if(pthread_create(&tid,NULL,par_parse_status_file,&ppsf)){
 		fprintf(stderr,"Couldn't launch status-lexing thread\n");
 		return EXIT_FAILURE;
@@ -199,18 +214,16 @@ int main(int argc,char **argv){
 	if(stat == NULL){
 		return EXIT_FAILURE;
 	}
-	if(argv[optind]){
-		if(allversions){
-			if(all_output((const char **)(argv + optind),pc,stat) < 0){
-				return EXIT_FAILURE;
-			}
-		}else if(filtered_output((const char **)(argv + optind),pc,stat) < 0){
+	if(allversions){
+		if(all_output(pc) < 0){
 			return EXIT_FAILURE;
 		}
-	}else{
-		if(installed_output(pc,stat) < 0){
+	}else if(ppsf.dfa){
+		if(filtered_output(pc,stat,ppsf.dfa) < 0){
 			return EXIT_FAILURE;
 		}
+	}else if(installed_output(pc,stat) < 0){
+		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;
 }
