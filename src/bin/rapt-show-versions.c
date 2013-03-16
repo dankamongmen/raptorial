@@ -112,7 +112,7 @@ par_parse_status_file(void *statusfile){
 	struct pkglist *stat;
 	int err;
 
-	if((stat = parse_status_file(statusfile,&err)) == NULL){
+	if((stat = parse_status_file(statusfile,&err,NULL)) == NULL){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",
 			(const char *)statusfile,strerror(err));
 	}
@@ -181,7 +181,7 @@ int main(int argc,char **argv){
 		fprintf(stderr,"Couldn't launch status-lexing thread\n");
 		return EXIT_FAILURE;
 	}
-	if((pc = parse_packages_dir(listdir,&err)) == NULL){
+	if((pc = parse_packages_dir(listdir,&err,NULL)) == NULL){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",listdir,strerror(err));
 		return EXIT_FAILURE;
 	}
