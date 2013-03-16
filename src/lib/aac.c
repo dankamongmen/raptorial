@@ -1,6 +1,8 @@
 #include <aac.h>
+#include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <raptorial.h>
 
 typedef struct edge {
 	// Use offsets into a dynamic array rather than pointers so we needn't
@@ -43,12 +45,12 @@ static inline unsigned
 edge_search(const dfavtx *node,int s){
 	unsigned max,min,pos;
 
-	if((max = node->setsize) == 0){
-		return 0;
-	}
 	min = 0;
+	max = node->setsize;
 	do{
-		pos = (min + max) / 2;
+		if((pos = (min + max) / 2) == max){
+			break;
+		}
 		if(node->set[pos].label == s){
 			break;
 		}
@@ -57,11 +59,12 @@ edge_search(const dfavtx *node,int s){
 		}else{
 			min = pos;
 		}
-	}while(pos > min || pos < max);
+	}while(pos != (min + max) / 2);
 	return pos;
 }
 
-int augment_dfa(dfa **space,const char *str,void *val){
+PUBLIC int
+augment_dfa(dfa **space,const char *str,void *val){
 	const char *s;
 	dfavtx *cur;
 
@@ -77,7 +80,9 @@ int augment_dfa(dfa **space,const char *str,void *val){
 			free(*space);
 			return -1;
 		}
-		++(*space)->vtxcount;
+		(*space)->vtxarray[0].setsize = 0;
+		(*space)->vtxarray[0].set = NULL;
+		(*space)->vtxcount = 1;
 	}
 	// For each successive character in the augmenting string, check to
 	// see if there's already an edge so labelled, and follow it if so.
@@ -90,9 +95,7 @@ int augment_dfa(dfa **space,const char *str,void *val){
 		unsigned pos;
 
 		pos = edge_search(cur,*s);
-		if(pos < cur->setsize && cur->set[pos].label == *s){
-			cur = (*space)->vtxarray + cur->set[pos].vtx;
-		}else{
+		if(pos >= cur->setsize || cur->set[pos].label != *s){
 			struct edge *tmp;
 
 			if((*space)->vtxcount == (*space)->vtxalloc){
@@ -116,7 +119,11 @@ int augment_dfa(dfa **space,const char *str,void *val){
 			++cur->setsize;
 			cur->set[pos].label = *s;
 			cur->set[pos].vtx = (*space)->vtxcount++;
+			(*space)->vtxarray[cur->set[pos].vtx].setsize = 0;
+			(*space)->vtxarray[cur->set[pos].vtx].set = NULL;
+			(*space)->vtxarray[cur->set[pos].vtx].val = NULL;
 		}
+		cur = (*space)->vtxarray + cur->set[pos].vtx;
 	}
 	if(cur->val){ // Already have this pattern!
 		return -1;
