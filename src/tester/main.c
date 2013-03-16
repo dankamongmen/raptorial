@@ -42,6 +42,7 @@ int main(int argc,char **argv){
 		return EXIT_FAILURE;
 	}
 	free_package_cache(pc);
+	free_dfa(dfa);
 	printf("Successfully parsed %s (%u package%s)\n",argv[1],
 			pkgs,pkgs == 1 ? "" : "s");
 	return EXIT_SUCCESS;
