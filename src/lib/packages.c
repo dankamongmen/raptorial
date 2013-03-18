@@ -237,32 +237,16 @@ lex_chunk(size_t offset,const char *start,const char *end,
 						return -1; // No package version
 					}
 				}
-				if(pp->dfa){
-					pthread_mutex_lock(&pp->lock);
+				if(pp->dfa && filter){
 					if( (po = match_dfactx_nstring(&dctx,pname,pnamelen)) ){
-						if(!filter){
-							if(fill_package(po,pver,pverlen,pstatus,pstatuslen)){
-								return -1;
-							}
-						}else{
-							fprintf(stderr,"Duplicate package %s\n",po->name);
-						}
-					}else{ // no match
-						if(!filter){ // filter out
-							if((po = create_package(pname,pnamelen,pver,pverlen,
-											pstatus,pstatuslen)) == NULL){
-								return -1;
-							}
-							augment_dfa(pp->dfa,po->name,po);
+						if(fill_package(po,pver,pverlen,pstatus,pstatuslen)){
+							return -1;
 						}
 					}
 					init_dfactx(&dctx,*pp->dfa);
-					pthread_mutex_unlock(&pp->lock);
-				}else{
-					if((po = create_package(pname,pnamelen,pver,pverlen,
-									pstatus,pstatuslen)) == NULL){
-						return -1;
-					}
+				}else if((po = create_package(pname,pnamelen,pver,pverlen,
+							pstatus,pstatuslen)) == NULL){
+					return -1;
 				}
 				// Package ended!
 				if(po){
@@ -356,10 +340,12 @@ lex_chunks(void *vpp){
 	struct pkgparse *pp = vpp;
 	pkgobj *head,**enq,*po;
 	unsigned packages = 0;
+	unsigned filter;
 	size_t offset;
 
 	head = NULL;
 	enq = &head;
+	filter = pp->dfa && *(pp->dfa) ? 1 : 0;
 	offset = get_new_offset(pp);
 	// We can go past the end of our chunk to finish a package's parsing
 	// in media res, but we can't go past the end of the actual map!
@@ -382,6 +368,11 @@ lex_chunks(void *vpp){
 	}
 	if(head){
 		pthread_mutex_lock(&pp->lock); // Success!
+			if(pp->dfa && !filter){
+				for(po = head ; po ; po = po->next){
+					augment_dfa(pp->dfa,po->name,po);
+				}
+			}
 			pp->sharedpcache->pcount += packages;
 			*enq = pp->sharedpcache->pobjs;
 			pp->sharedpcache->pobjs = head;

@@ -29,7 +29,8 @@ typedef struct dfa {
 	unsigned vtxcount,vtxalloc;
 } dfa;
 
-void init_dfactx(dfactx *dctx,const dfa *space){
+PUBLIC void
+init_dfactx(dfactx *dctx,const dfa *space){
 	dctx->dfa = space;
 	dctx->cur = 0;
 }
@@ -154,11 +155,8 @@ void free_dfa(dfa *space){
 void *match_dfactx_char(dfactx *dctx,int s){
 	unsigned pos;
 
-	if(dctx){ // FIXME this conditional seems redundant...but is not?
-		return NULL;
-	}
 	pos = edge_search(&dctx->dfa->vtxarray[dctx->cur],s);
-	if(pos < dctx->dfa->vtxarray[dctx->cur].setsize &&
+	if(pos >= dctx->dfa->vtxarray[dctx->cur].setsize ||
 			dctx->dfa->vtxarray[dctx->cur].set[pos].label != s){
 		// FIXME take the sigma (failure) function
 		return NULL;
@@ -169,20 +167,36 @@ void *match_dfactx_char(dfactx *dctx,int s){
 
 void *match_dfactx_string(dfactx *dctx,const char *str){
 	while(*str){
-		match_dfactx_char(dctx,*str);
+		unsigned pos;
+
+		pos = edge_search(&dctx->dfa->vtxarray[dctx->cur],*str);
+		if(pos >= dctx->dfa->vtxarray[dctx->cur].setsize ||
+				dctx->dfa->vtxarray[dctx->cur].set[pos].label != *str){
+			// FIXME take the sigma (failure) function
+			init_dfactx(dctx,dctx->dfa);
+			return NULL;
+		}
 		++str;
+		dctx->cur = dctx->dfa->vtxarray[dctx->cur].set[pos].vtx;
 	}
-	// FIXME this guard also seems redundant, but is not?
-	return dctx->cur ? dctx->dfa->vtxarray[dctx->cur].val : NULL;
+	return dctx->dfa->vtxarray[dctx->cur].val;
 }
 
 void *match_dfactx_nstring(dfactx *dctx,const char *s,size_t len){
 	while(len--){
-		match_dfactx_char(dctx,*s);
+		unsigned pos;
+
+		pos = edge_search(&dctx->dfa->vtxarray[dctx->cur],*s);
+		if(pos >= dctx->dfa->vtxarray[dctx->cur].setsize ||
+				dctx->dfa->vtxarray[dctx->cur].set[pos].label != *s){
+			// FIXME take the sigma (failure) function
+			init_dfactx(dctx,dctx->dfa);
+			return NULL;
+		}
 		++s;
+		dctx->cur = dctx->dfa->vtxarray[dctx->cur].set[pos].vtx;
 	}
-	// FIXME this guard also seems redundant, but is not?
-	return dctx->cur ? dctx->dfa->vtxarray[dctx->cur].val : NULL;
+	return dctx->dfa->vtxarray[dctx->cur].val;
 }
 
 static int
