@@ -43,6 +43,12 @@
 					<email>&dhemail;</email>
 				</address>
 			</author>
+			<author>
+				<firstname>Christoph</firstname>
+				<surname>Martin</surname>
+				<contrib>Original apt-show-versions(1).</contrib>
+				<address><email>martin@uni-mainz.de</email></address>
+			</author>
 		</authorgroup>
 		<copyright>
 			<year>2013</year>
@@ -57,4 +63,76 @@
 		<refname>&dhpackage;</refname>
 		<refpurpose>List available package versions</refpurpose>
 	</refnamediv>
+	<refsynopsisdiv>
+		<cmdsynopsis>
+			<command>&dhpackage;</command>
+			<arg>-h</arg>
+			<arg>-a</arg>
+			<arg>-s file</arg>
+			<arg>-l dir</arg>
+			<arg> regexes </arg>
+		</cmdsynopsis>
+	</refsynopsisdiv>
+	<refsect1 id="description">
+		<title>DESCRIPTION</title>
+		<para><command>&dhpackage;</command> scans the dpkg status
+		database and APT package lists, and prints information
+		regarding what versions of packages are available. By default,
+		all installed packages will be summarized (the installed
+		version, and available upgrades, will be listed, one line per
+		installed package).</para>
+		<para>Output can be limited to a set of
+		packages by specifying them as arguments. Regexes are
+		supported; use postfix '*' for the Kleene closure, infix '|'
+		for alternation, and bounding parentheses to change precedence.
+		By default, * binds more tightly than |, which binds more
+		tightly than concatenation.
+		</para>
+	</refsect1>
+	<refsect1 id="options">
+		<title>OPTIONS</title>
+		<varlistentry>
+			<term><option>-h / --help</option></term>
+			<listitem>
+			<para>Print a brief usage summary and exit.</para>
+			</listitem>
+		</varlistentry>
+		<varlistentry>
+			<term><option>-a / --allversions</option></term>
+			<listitem>
+			<para>Print all available versions of installed packages.</para>
+			</listitem>
+		</varlistentry>
+		<varlistentry>
+			<term><option>-s / --status-file=file</option></term>
+			<listitem>
+			<para>Use file as the dpkg status database rather than /var/lib/dpkg/status.</para>
+			</listitem>
+		</varlistentry>
+		<varlistentry>
+			<term><option>-l / --list-dir=dir</option></term>
+			<listitem>
+			<para>Read package lists from dir rather than /var/lib/apt/lists.</para>
+			</listitem>
+		</varlistentry>
+	</refsect1>
+	<refsect1 id="notes">
+		<title>NOTES</title>
+		<para>
+		The package list directory will be recursively enumerated. Files
+		matching a specific pattern will be lexed as lists of either
+		source or binary packages. Other files will be ignored. A failure
+		to recognize any lexed file will result in general error.
+		</para>
+	</refsect1>
+	<refsect1 id="bugs">
+		<title>BUGS</title>
+		<para>Bugs are tracked at  <ulink url="https://www.sprezzatech.com/bugs/buglist.cgi?product=raptorial" />.</para>
+	</refsect1>
+	<refsect1 id="see_also">
+		<title>SEE ALSO</title>
+		<para>GitHub: <ulink url="http://github.com/dankamongmen/raptorial" /></para>
+		<para>Project wiki: <ulink url="https://www.sprezzatech.com/wiki/index.php/Raptorial" /></para>
+	</refsect1>
+
 </refentry>
