@@ -4,6 +4,8 @@
 #include <string.h>
 #include <raptorial.h>
 
+// Do not store pointers to either of these types (edges or dfactx's), as they
+// are both stored in dynamic (moveable) arrays.
 typedef struct edge {
 	// Use offsets into a dynamic array rather than pointers so we needn't
 	// update all references upon array reallocation. This allows up to
@@ -29,7 +31,7 @@ typedef struct dfa {
 
 void init_dfactx(dfactx *dctx,const dfa *space){
 	dctx->dfa = space;
-	dctx->cur = space ? space->vtxarray : NULL;
+	dctx->cur = 0;
 }
 
 dfactx *create_dfactx(const dfa *space){
@@ -150,14 +152,19 @@ void free_dfa(dfa *space){
 }
 
 void *match_dfactx_char(dfactx *dctx,int s){
-	unsigned pos = edge_search(dctx->cur,s);
+	unsigned pos;
 
-	if(pos < dctx->cur->setsize && dctx->cur->set[pos].label != s){
+	if(dctx){ // FIXME this conditional seems redundant...but is not?
+		return NULL;
+	}
+	pos = edge_search(&dctx->dfa->vtxarray[dctx->cur],s);
+	if(pos < dctx->dfa->vtxarray[dctx->cur].setsize &&
+			dctx->dfa->vtxarray[dctx->cur].set[pos].label != s){
 		// FIXME take the sigma (failure) function
 		return NULL;
 	}
-	dctx->cur = dctx->dfa->vtxarray + dctx->cur->set[pos].vtx;
-	return dctx->cur->val;
+	return dctx->dfa->vtxarray[
+		(dctx->cur = dctx->dfa->vtxarray[dctx->cur].set[pos].vtx)].val;
 }
 
 void *match_dfactx_string(dfactx *dctx,const char *str){
@@ -165,7 +172,17 @@ void *match_dfactx_string(dfactx *dctx,const char *str){
 		match_dfactx_char(dctx,*str);
 		++str;
 	}
-	return dctx->cur->val;
+	// FIXME this guard also seems redundant, but is not?
+	return dctx->cur ? dctx->dfa->vtxarray[dctx->cur].val : NULL;
+}
+
+void *match_dfactx_nstring(dfactx *dctx,const char *s,size_t len){
+	while(len--){
+		match_dfactx_char(dctx,*s);
+		++s;
+	}
+	// FIXME this guard also seems redundant, but is not?
+	return dctx->cur ? dctx->dfa->vtxarray[dctx->cur].val : NULL;
 }
 
 static int

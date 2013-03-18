@@ -18,6 +18,7 @@ free_dfactx(dfactx *dctx){
 
 void *match_dfactx_char(dfactx *,int);
 void *match_dfactx_string(dfactx *,const char *);
+void *match_dfactx_nstring(dfactx *,const char *,size_t);
 
 #ifdef __cplusplus
 }

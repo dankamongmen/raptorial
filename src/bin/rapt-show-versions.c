@@ -186,18 +186,23 @@ int main(int argc,char **argv){
 			statusfile,strerror(err));
 		return EXIT_FAILURE;
 	}
-	if((pc = lex_packages_dir(listdir,&err,dfa)) == NULL){
-		fprintf(stderr,"Couldn't parse %s (%s?)\n",listdir,strerror(err));
-		return EXIT_FAILURE;
-	}
-	if(stat == NULL){
-		return EXIT_FAILURE;
-	}
-	if(allversions){
-		if(all_output(dfa,pc,stat) < 0){
+	if(dfa){ // otherwise, no packages installed and none listed
+		if((pc = lex_packages_dir(listdir,&err,dfa)) == NULL){
+			fprintf(stderr,"Couldn't parse %s (%s?)\n",listdir,strerror(err));
 			return EXIT_FAILURE;
 		}
-	}else if(installed_output(dfa,pc,stat) < 0){
+		if(stat == NULL){
+			return EXIT_FAILURE;
+		}
+		if(allversions){
+			if(all_output(dfa,pc,stat) < 0){
+				return EXIT_FAILURE;
+			}
+		}else if(installed_output(dfa,pc,stat) < 0){
+			return EXIT_FAILURE;
+		}
+	}else{
+		fprintf(stderr,"No packages installed\n");
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;

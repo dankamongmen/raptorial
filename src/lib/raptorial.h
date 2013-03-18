@@ -129,7 +129,7 @@ raptorial_def_status_file(void);
 
 typedef struct dfactx {
 	const struct dfa *dfa;
-	const struct dfavtx *cur;
+	unsigned cur;
 } dfactx;
 
 dfactx *create_dfactx(const struct dfa *);

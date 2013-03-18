@@ -68,41 +68,48 @@ free_package(pkgobj *po){
 	free(po);
 }
 
+static int
+fill_package(pkgobj *po,const char *ver,size_t verlen,const char *status,
+					size_t statuslen){
+	if(ver){
+		if((po->version = malloc(sizeof(*po->version) * (verlen + 1))) == NULL){
+			return -1;
+		}
+		strncpy(po->version,ver,verlen);
+		po->version[verlen] = '\0';
+	}else{
+		po->version = NULL;
+	}
+	if(status){
+		if((po->status = malloc(sizeof(*po->status) * (statuslen + 1))) == NULL){
+			free(po->version);
+			return -1;
+		}
+		strncpy(po->status,status,statuslen);
+		po->status[statuslen] = '\0';
+	}else{
+		po->status = NULL;
+	}
+	return 0;
+}
+
 static pkgobj *
 create_package(const char *name,size_t namelen,const char *ver,size_t verlen,
 			const char *status,size_t statuslen){
 	pkgobj *po;
 
 	if( (po = malloc(sizeof(*po))) ){
-		if(ver){
-			if((po->version = malloc(sizeof(*po->version) * (verlen + 1))) == NULL){
-				free(po);
-				return NULL;
-			}
-			strncpy(po->version,ver,verlen);
-			po->version[verlen] = '\0';
-		}else{
-			po->version = NULL;
-		}
 		if((po->name = malloc(sizeof(*po->name) * (namelen + 1))) == NULL){
-			free(po->version);
 			free(po);
 			return NULL;
 		}
-		if(status){
-			if((po->status = malloc(sizeof(*po->status) * (statuslen + 1))) == NULL){
-				free(po->name);
-				free(po->version);
-				free(po);
-				return NULL;
-			}
-			strncpy(po->status,status,statuslen);
-			po->status[statuslen] = '\0';
-		}else{
-			po->status = NULL;
-		}
 		strncpy(po->name,name,namelen);
 		po->name[namelen] = '\0';
+		if(fill_package(po,ver,verlen,status,statuslen)){
+			free(po->name);
+			free(po);
+			return NULL;
+		}
 	}
 	return po;
 }
@@ -154,15 +161,23 @@ enum {
 // pointer, use that as a filter for construction of our list.
 static int
 lex_chunk(size_t offset,const char *start,const char *end,
-		const char *veryend,pkgobj ***enq,int statusfile,
-		struct dfa **dfa){
+		const char *veryend,pkgobj ***enq,
+		struct pkgparse *pp){
 	const char *expect,*pname,*pver,*pstatus,*c,*delim;
 	size_t pnamelen,pverlen,pstatuslen;
 	int rewardstate,state;
 	unsigned newp = 0;
+	unsigned filter;
 	dfactx dctx;
 	pkgobj *po;
 
+	// filter is 0 if we're building the dfa, 1 if we're being filtered by
+	// the dfa, and undefined if dga == NULL
+	if(pp->dfa){
+		filter = *(pp->dfa) ? 1 : 0;
+	}else{
+		filter = 0; // FIXME get rid of this when gcc improves
+	}
 	// First, find the start of our chunk:
 	//  - If we are offset 0, we are at the start of our chunk
 	//  - Otherwise, if the previous two characters (those preceding our
@@ -189,7 +204,7 @@ lex_chunk(size_t offset,const char *start,const char *end,
 	}else{
 		c = start;
 	}
-	init_dfactx(&dctx,dfa ? *dfa : NULL);
+	init_dfactx(&dctx,pp->dfa ? *pp->dfa : NULL);
 	// We are at the beginning of our chunk, which might be 0 bytes. Any
 	// partial record with which our map started has been skipped
 	// Upon reaching the (optional, only one allowed) delimiter on each
@@ -210,7 +225,7 @@ lex_chunk(size_t offset,const char *start,const char *end,
 				if(pname == NULL || pnamelen == 0){
 					return -1; // No package name
 				}
-				if(statusfile){
+				if(pp->statusfile){
 					if(pstatus == NULL || pstatuslen == 0){
 						return -1; // No package status
 					}
@@ -222,14 +237,39 @@ lex_chunk(size_t offset,const char *start,const char *end,
 						return -1; // No package version
 					}
 				}
-				if((po = create_package(pname,pnamelen,pver,pverlen,
-								pstatus,pstatuslen)) == NULL){
-					return -1;
+				if(pp->dfa){
+					pthread_mutex_lock(&pp->lock);
+					if( (po = match_dfactx_nstring(&dctx,pname,pnamelen)) ){
+						if(!filter){
+							if(fill_package(po,pver,pverlen,pstatus,pstatuslen)){
+								return -1;
+							}
+						}else{
+							fprintf(stderr,"Duplicate package %s\n",po->name);
+						}
+					}else{ // no match
+						if(!filter){ // filter out
+							if((po = create_package(pname,pnamelen,pver,pverlen,
+											pstatus,pstatuslen)) == NULL){
+								return -1;
+							}
+							augment_dfa(pp->dfa,po->name,po);
+						}
+					}
+					init_dfactx(&dctx,*pp->dfa);
+					pthread_mutex_unlock(&pp->lock);
+				}else{
+					if((po = create_package(pname,pnamelen,pver,pverlen,
+									pstatus,pstatuslen)) == NULL){
+						return -1;
+					}
 				}
 				// Package ended!
-				++newp;
-				**enq = po;
-				*enq = &po->next;
+				if(po){
+					++newp;
+					**enq = po;
+					*enq = &po->next;
+				}
 				pname = NULL;
 				pver = NULL;
 				pstatus = NULL;
@@ -333,7 +373,7 @@ lex_chunks(void *vpp){
 		}else{
 			end = start + pp->csize;
 		}
-		newp = lex_chunk(offset,start,end,veryend,&enq,pp->statusfile,pp->dfa);
+		newp = lex_chunk(offset,start,end,veryend,&enq,pp);
 		if(newp < 0){
 			goto err;
 		}
