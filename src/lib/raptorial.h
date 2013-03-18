@@ -30,6 +30,7 @@ extern "C" {
 #include <stddef.h>
 
 struct dfa;
+struct dfactx;
 struct pkgobj;
 struct pkglist;
 struct pkgcache;
@@ -126,11 +127,23 @@ raptorial_def_lists_dir(void);
 PUBLIC const char *
 raptorial_def_status_file(void);
 
+typedef struct dfactx {
+	const struct dfa *dfa;
+	const struct dfavtx *cur;
+} dfactx;
+
+dfactx *create_dfactx(const struct dfa *);
+
+void init_dfactx(dfactx *,const struct dfa *);
+
 PUBLIC int
 augment_dfa(struct dfa **,const char *,void *);
 
 PUBLIC void
 free_dfa(struct dfa *);
+
+PUBLIC void *
+match_dfactx_string(struct dfactx *,const char *);
 
 PUBLIC int
 walk_dfa(const struct dfa *,int (*)(const char *,const void *),const void *);

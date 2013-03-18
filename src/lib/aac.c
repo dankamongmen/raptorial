@@ -27,12 +27,16 @@ typedef struct dfa {
 	unsigned vtxcount,vtxalloc;
 } dfa;
 
+void init_dfactx(dfactx *dctx,const dfa *space){
+	dctx->dfa = space;
+	dctx->cur = space ? space->vtxarray : NULL;
+}
+
 dfactx *create_dfactx(const dfa *space){
 	dfactx *dctx;
 
 	if( (dctx = malloc(sizeof(*dctx))) ){
-		dctx->dfa = space;
-		dctx->cur = space->vtxarray;
+		init_dfactx(dctx,space);
 	}
 	return dctx;
 }

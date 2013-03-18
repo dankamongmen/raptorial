@@ -6,16 +6,10 @@ extern "C" {
 #endif
 
 #include <stdlib.h>
+#include <raptorial.h>
 
 struct dfa;
 struct dfavtx;
-
-typedef struct dfactx {
-	const struct dfa *dfa;
-	const struct dfavtx *cur;
-} dfactx;
-
-dfactx *create_dfactx(const struct dfa *);
 
 static inline void
 free_dfactx(dfactx *dctx){

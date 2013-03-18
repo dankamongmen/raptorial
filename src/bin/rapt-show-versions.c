@@ -23,29 +23,30 @@ usage(FILE *out,const char *name){
 	fprintf(out," -h|--help               Display this usage summary\n");
 }
 
+struct focmarsh {
+	const struct dfa *dfa;
+	const struct pkgcache *pc;
+	const struct pkglist *stat;
+};
+
 static int
-all_output(const struct pkgcache *pc){
+all_output_callback(const char *str,const void *opaque){
+	const struct focmarsh *foc = opaque;
 	const struct pkglist *pl;
+	const struct pkgobj *po;
+	/*dfactx dctx;
 
-	for(pl = pkgcache_begin(pc) ; pl ; pl = pkgcache_next(pl)){
-		const struct pkgobj *po;
-
-		for(po = pkglist_begin(pl) ; po ; po = pkglist_next(po)){
-			if(printf("%s %s %s %s\n",pkgobj_name(po),
-					pkgobj_version(po),
-					pkglist_dist(pl),
-					pkglist_uri(pl)) < 0){
-				return -1;
-			}
+	init_dctx(&dctx,&foc->dfa);
+	match_dfa_string(&dctx,str)*/
+	pl = foc->stat;
+	for(po = pkglist_begin(foc->stat) ; po ; po = pkglist_next(po)){
+		if(printf("%s %s %s %s\n",str,pkgobj_version(po),
+				pkglist_dist(pl),pkglist_uri(pl)) < 0){
+			return -1;
 		}
 	}
 	return 0;
 }
-
-struct focmarsh {
-	const struct pkgcache *pc;
-	const struct pkglist *stat;
-};
 
 static int
 filtered_output_callback(const char *str,const void *opaque){
@@ -81,6 +82,16 @@ filtered_output_callback(const char *str,const void *opaque){
 		}
 	}
 	return 0;
+}
+
+static int
+all_output(const struct dfa *dfa,const struct pkgcache *pc,const struct pkglist *stat){
+	const struct focmarsh foc = {
+		.pc = pc,
+		.stat = stat,
+	};
+
+	return walk_dfa(dfa,all_output_callback,&foc);
 }
 
 static int
@@ -176,7 +187,7 @@ int main(int argc,char **argv){
 		return EXIT_FAILURE;
 	}
 	if(allversions){
-		if(all_output(pc) < 0){
+		if(all_output(dfa,pc,stat) < 0){
 			return EXIT_FAILURE;
 		}
 	}else if(installed_output(dfa,pc,stat) < 0){

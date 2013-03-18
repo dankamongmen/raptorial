@@ -1,3 +1,4 @@
+#include <aac.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -147,13 +148,19 @@ enum {
 // We're not treating the input as anything but ASCII text, though it's almost
 // certainly UTF8. Need to ensure that newlines and pattern tags are all
 // strictly ASCII or change how we handle things FIXME.
+//
+// Typical rules for DFA: If NULL, it's unused. If it points to a pointer to
+// NULL, construct it from whatever we find. If it points to a non-NULL
+// pointer, use that as a filter for construction of our list.
 static int
 lex_chunk(size_t offset,const char *start,const char *end,
-		const char *veryend,pkgobj ***enq,int statusfile){
+		const char *veryend,pkgobj ***enq,int statusfile,
+		struct dfa **dfa){
 	const char *expect,*pname,*pver,*pstatus,*c,*delim;
 	size_t pnamelen,pverlen,pstatuslen;
 	int rewardstate,state;
 	unsigned newp = 0;
+	dfactx dctx;
 	pkgobj *po;
 
 	// First, find the start of our chunk:
@@ -182,6 +189,7 @@ lex_chunk(size_t offset,const char *start,const char *end,
 	}else{
 		c = start;
 	}
+	init_dfactx(&dctx,dfa ? *dfa : NULL);
 	// We are at the beginning of our chunk, which might be 0 bytes. Any
 	// partial record with which our map started has been skipped
 	// Upon reaching the (optional, only one allowed) delimiter on each
@@ -325,7 +333,7 @@ lex_chunks(void *vpp){
 		}else{
 			end = start + pp->csize;
 		}
-		newp = lex_chunk(offset,start,end,veryend,&enq,pp->statusfile);
+		newp = lex_chunk(offset,start,end,veryend,&enq,pp->statusfile,pp->dfa);
 		if(newp < 0){
 			goto err;
 		}
@@ -367,7 +375,7 @@ lex_map(pkglist *pl,const void *mem,size_t len,int *err,int statusfile,
 		.len = len,
 		.offset = 0,
 		.sharedpcache = pl,
-		.csize = 1024 * 128,
+		.csize = 1024 * 1024,
 	};
 	blossom_ctl bctl = {
 		.flags = 0,
