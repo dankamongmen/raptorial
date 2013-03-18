@@ -51,24 +51,20 @@ static int
 filtered_output_callback(const char *str,const void *peropaq,const void *opaque){
 	const struct focmarsh *foc = opaque;
 	const struct pkgobj *po = peropaq;
-	//const struct pkgobj *newpo;
+	const struct pkgobj *newpo;
 	const struct pkglist *pl;
 
 	if(pkgobj_version(po) == NULL){
-		if(printf("%s is neither installed nor available\n",str) < 0){
-			return -1;
-		}
-		// FIXME check for available version
-		/*
+		if((newpo = pkgcache_find_newest(foc->pc,str,&pl)) == NULL){
+			if(printf("%s is neither installed nor available\n",str) < 0){
+				return -1;
+			}
 		}else if(printf("%s is not installed (%s available from %s)\n",
 				str,pkgobj_version(newpo),pkglist_dist(pl)) < 0){
 			return -1;
 		}
-		*/
 	}else{
-		// FIXME check for available version
-		pl = foc->stat;
-		/*if((newpo = pkgcache_find_newest(foc->pc,str,&pl)) == NULL){
+		if((newpo = pkgcache_find_newest(foc->pc,str,&pl)) == NULL){
 			if(printf("%s %s is installed (unavailable)\n",
 						str,pkgobj_version(po)) < 0){
 				return -1;
@@ -80,7 +76,7 @@ filtered_output_callback(const char *str,const void *peropaq,const void *opaque)
 						pkgobj_version(newpo)) < 0){
 				return -1;
 			}
-		}else */if(printf("%s/%s uptodate %s\n",str,pkglist_dist(pl),
+		}else if(printf("%s/%s uptodate %s\n",str,pkglist_dist(pl),
 					pkgobj_version(po)) < 0){
 			return -1;
 		}
