@@ -22,7 +22,7 @@ typedef struct dfavtx {
 
 // Entrypoint of the automaton is always vtxarray[0]
 typedef struct dfa {
-	ptrdiff_t longest; // Longest pattern in the tree
+	ptrdiff_t longest; // Longest pattern in the tree + 1
 	dfavtx *vtxarray; // Dynamic array of dfavtxs
 	unsigned vtxcount,vtxalloc;
 } dfa;
@@ -84,7 +84,7 @@ augment_dfa(dfa **space,const char *str,void *val){
 		(*space)->vtxarray[0].setsize = 0;
 		(*space)->vtxarray[0].set = NULL;
 		(*space)->vtxcount = 1;
-		(*space)->longest = 0;
+		(*space)->longest = 1;
 	}
 	// For each successive character in the augmenting string, check to
 	// see if there's already an edge so labelled, and follow it if so.
@@ -186,7 +186,7 @@ recurse_dfa(const dfa *d,const dfavtx *dvtx,char *str,unsigned stroff,
 }
 
 int walk_dfa(const dfa *d,int (*cb)(const char *,const void *),const void *opaq){
-	char str[BUFSIZ]; // FIXME FIXME FIXME needs be as long as longest string
+	char str[d->longest];
 
 	return recurse_dfa(d,d->vtxarray,str,0,cb,opaq);
 }
