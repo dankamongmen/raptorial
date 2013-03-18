@@ -124,6 +124,8 @@
 		source or binary packages. Other files will be ignored. A failure
 		to recognize any lexed file will result in general error.
 		</para>
+		<para><command>&dhpackage;</command> does not necessarily
+		preserve ordering of the status or package files.</para>
 	</refsect1>
 	<refsect1 id="bugs">
 		<title>BUGS</title>
