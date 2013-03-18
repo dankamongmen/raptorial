@@ -34,22 +34,33 @@ struct pkgobj;
 struct pkglist;
 struct pkgcache;
 
-// Returns a new package list object after parsing the specified package list.
+// Returns a new package list object after lexing the specified package list.
 // On error, NULL is returned, and the error value will be written through; it
-// is otherwise untouched.
+// is otherwise untouched. The package list will be broken into chunks, and
+// lexed in parallel.
+//
+// If dfa is NULL, it will be unused. If it points to a NULL, we will build it.
+// If it points to a non-null, we will filter our list based on it.
 PUBLIC struct pkglist *
-parse_packages_file(const char *,int *,const struct dfa *);
+lex_packages_file(const char *,int *,struct dfa **);
 
-// Returns a new package cache object after parsing any package lists found in
-// the specified directory.
+// Returns a new package list object after lexing the provided package list.
+// On error, NULL is returned, and the error value will be written through; it
+// is otherwise untouched. The package list will be broken into chunks, and
+// lexed in parallel.
+//
+// If dfa is NULL, it will be unused. If it points to a NULL, we will build it.
+// If it points to a non-null, we will filter our list based on it.
+PUBLIC struct pkglist *
+lex_packages_mem(const void *,size_t,int *,struct dfa **);
+
+// Returns a new package cache object after lexing any package lists found in
+// the specified directory. The lists will be processed in parallel.
+//
+// If dfa is non-NULL, it will be used to filter our list. This function is
+// not capable of building a DFA, since it lexes file chunks in parallel.
 PUBLIC struct pkgcache *
-parse_packages_dir(const char *,int *,const struct dfa *);
-
-// Returns a new package list object after parsing the provided package list.
-// On error, NULL is returned, and the error value will be written through; it
-// is otherwise untouched.
-PUBLIC struct pkglist *
-parse_packages_mem(const void *,size_t,int *,const struct dfa *);
+lex_packages_dir(const char *,int *,struct dfa *);
 
 // Wrap a package list in a single-index cache object. Returns NULL if passed
 // NULL, without modifying err, allowing use in functional composition. Frees
@@ -62,10 +73,14 @@ PUBLIC void free_package_list(struct pkglist *);
 // Free the pkgcache and any associated state, including pkglists therein.
 PUBLIC void free_package_cache(struct pkgcache *);
 
-// Parse a dpkg status file. On error, NULL is returned and the error value is
-// written through. On success, it is not touched.
+// Lex a dpkg status file. On error, NULL is returned and the error value is
+// written through. On success, it is not touched. The status file will be
+// broken into chunks, and lexed in parallel.
+//
+// If dfa is NULL, it will be unused. If it points to a NULL, we will build it.
+// If it points to a non-null, we will filter our list based on it.
 PUBLIC struct pkglist *
-parse_status_file(const char *,int *,const struct dfa *);
+lex_status_file(const char *,int *,struct dfa **);
 
 PUBLIC const struct pkglist *
 pkgcache_begin(const struct pkgcache *);

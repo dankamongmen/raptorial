@@ -7,6 +7,9 @@
 #include <pthread.h>
 #include <raptorial.h>
 
+// Our output is a bit funky at times, because we're attempting to faithfully
+// emulate apt-show-versions(1). For now.
+
 static void
 usage(FILE *out,const char *name){
 	fprintf(out,"rapt-show-versions v%s by nick black <dank@qemfd.net>\n",PACKAGE_VERSION);
@@ -81,54 +84,13 @@ filtered_output_callback(const char *str,const void *opaque){
 }
 
 static int
-filtered_output(const struct pkgcache *pc,const struct pkglist *stat,
-					const struct dfa *dfa){
-	struct focmarsh foc = {
+installed_output(const struct dfa *dfa,const struct pkgcache *pc,const struct pkglist *stat){
+	const struct focmarsh foc = {
 		.pc = pc,
 		.stat = stat,
 	};
 
 	return walk_dfa(dfa,filtered_output_callback,&foc);
-}
-
-static int
-installed_output(const struct pkgcache *pc __attribute__ ((unused)),const struct pkglist *stat){
-	const struct pkgobj *po;
-
-	for(po = pkglist_begin(stat) ; po ; po = pkglist_next(po)){
-		const struct pkglist *pl /*FIXME;*/ = stat;
-		/*const struct pkgobj *newpo;
-
-		if((newpo = pkgcache_find_newest(pc,pkgobj_name(po),&pl)) == NULL){
-			if(printf("%s %s %s: No available version in archive\n",
-					pkgobj_name(po),pkgobj_version(po),
-					pkgobj_status(po)) < 0){
-				return -1;
-			}
-		}else */if(printf("%s/%s %s %s\n",pkgobj_name(po),pkglist_dist(pl),
-				pkgobj_status(po),pkgobj_version(po)) < 0){
-			return -1;
-		}
-	}
-	return 0;
-}
-
-struct ppsfmarsh {
-	const char *statusfile;
-	struct dfa *dfa;
-};
-
-static void *
-par_parse_status_file(void *vppsf){
-	const struct ppsfmarsh *ppsfmarsh = vppsf;
-	struct pkglist *stat;
-	int err;
-
-	if((stat = parse_status_file(ppsfmarsh->statusfile,&err,ppsfmarsh->dfa)) == NULL){
-		fprintf(stderr,"Couldn't parse %s (%s?)\n",
-			ppsfmarsh->statusfile,strerror(err));
-	}
-	return stat;
 }
 
 // There's no need to free up the structures on exit -- the OS reclaims that
@@ -142,13 +104,11 @@ int main(int argc,char **argv){
 		{ "help", 0, NULL, 'h' },
 		{ NULL, 0, NULL, 0 }
 	};
-	struct ppsfmarsh ppsf;
-	const char *listdir;
+	const char *statusfile,*listdir;
 	struct pkglist *stat;
 	int allversions = 0;
 	struct pkgcache *pc;
-	char *statusfile;
-	pthread_t tid;
+	struct dfa *dfa;
 	int err,c;
 
 	listdir = NULL;
@@ -190,25 +150,26 @@ int main(int argc,char **argv){
 	if(listdir == NULL){
 		listdir = raptorial_def_lists_dir();
 	}
-	ppsf.statusfile = statusfile;
-	ppsf.dfa = NULL;
+	statusfile = statusfile;
+	dfa = NULL;
 	argv += optind;
 	while(*argv){
-		if(augment_dfa(&ppsf.dfa,*argv,*argv)){
+		if(augment_dfa(&dfa,*argv,*argv)){
 			return EXIT_FAILURE;
 		}
 		++argv;
 	}
-	if(pthread_create(&tid,NULL,par_parse_status_file,&ppsf)){
-		fprintf(stderr,"Couldn't launch status-lexing thread\n");
+	// We used to parallelize status file reading against the (already
+	// parallel) package list reading. We no longer do so, since we
+	// generate the filtering DFA based off the status file, and would
+	// otherwise need gross locking.
+	if((stat = lex_status_file(statusfile,&err,&dfa)) == NULL){
+		fprintf(stderr,"Couldn't parse %s (%s?)\n",
+			statusfile,strerror(err));
 		return EXIT_FAILURE;
 	}
-	if((pc = parse_packages_dir(listdir,&err,NULL)) == NULL){
+	if((pc = lex_packages_dir(listdir,&err,dfa)) == NULL){
 		fprintf(stderr,"Couldn't parse %s (%s?)\n",listdir,strerror(err));
-		return EXIT_FAILURE;
-	}
-	if(pthread_join(tid,(void **)&stat)){
-		fprintf(stderr,"Couldn't join status-lexing thread\n");
 		return EXIT_FAILURE;
 	}
 	if(stat == NULL){
@@ -218,11 +179,7 @@ int main(int argc,char **argv){
 		if(all_output(pc) < 0){
 			return EXIT_FAILURE;
 		}
-	}else if(ppsf.dfa){
-		if(filtered_output(pc,stat,ppsf.dfa) < 0){
-			return EXIT_FAILURE;
-		}
-	}else if(installed_output(pc,stat) < 0){
+	}else if(installed_output(dfa,pc,stat) < 0){
 		return EXIT_FAILURE;
 	}
 	return EXIT_SUCCESS;

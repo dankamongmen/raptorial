@@ -83,6 +83,7 @@ augment_dfa(dfa **space,const char *str,void *val){
 		}
 		(*space)->vtxarray[0].setsize = 0;
 		(*space)->vtxarray[0].set = NULL;
+		(*space)->vtxarray[0].val = NULL;
 		(*space)->vtxcount = 1;
 		(*space)->longest = 1;
 	}
@@ -132,7 +133,6 @@ augment_dfa(dfa **space,const char *str,void *val){
 	}
 	if(s - str > (*space)->longest){
 		(*space)->longest = s - str;
-		fprintf(stderr,"LONGEST: %s\n",str);
 	}
 	cur->val = val;
 	return 0;
@@ -186,7 +186,10 @@ recurse_dfa(const dfa *d,const dfavtx *dvtx,char *str,unsigned stroff,
 }
 
 int walk_dfa(const dfa *d,int (*cb)(const char *,const void *),const void *opaq){
-	char str[d->longest];
+	if(d){ // New DFAs get longest = 1, so needn't check that
+		char str[d->longest];
 
-	return recurse_dfa(d,d->vtxarray,str,0,cb,opaq);
+		return recurse_dfa(d,d->vtxarray,str,0,cb,opaq);
+	}
+	return 0;
 }
