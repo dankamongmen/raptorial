@@ -30,41 +30,45 @@ struct focmarsh {
 };
 
 static int
-all_output_callback(const char *str,const void *opaque){
+all_output_callback(const char *str,const void *peropaq,const void *opaque){
 	const struct focmarsh *foc = opaque;
+	const struct pkgobj *po = peropaq;
 	const struct pkglist *pl;
-	const struct pkgobj *po;
 	/*dfactx dctx;
 
 	init_dctx(&dctx,&foc->dfa);
 	match_dfa_string(&dctx,str)*/
 	pl = foc->stat;
-	for(po = pkglist_begin(foc->stat) ; po ; po = pkglist_next(po)){
-		if(printf("%s %s %s %s\n",str,pkgobj_version(po),
-				pkglist_dist(pl),pkglist_uri(pl)) < 0){
+	// FIXME get all versions from po
+	if(printf("%s %s %s %s\n",str,pkgobj_version(po),
+		pkglist_dist(pl),pkglist_uri(pl)) < 0){
 			return -1;
-		}
 	}
 	return 0;
 }
 
 static int
-filtered_output_callback(const char *str,const void *opaque){
+filtered_output_callback(const char *str,const void *peropaq,const void *opaque){
 	const struct focmarsh *foc = opaque;
-	const struct pkgobj *po,*newpo;
+	const struct pkgobj *po = peropaq;
+	//const struct pkgobj *newpo;
 	const struct pkglist *pl;
 
-	if((po = pkglist_find(foc->stat,str)) == NULL){
-		if((newpo = pkgcache_find_newest(foc->pc,str,&pl)) == NULL){
-			if(printf("%s is neither installed nor available\n",str) < 0){
-				return -1;
-			}
+	if(pkgobj_version(po) == NULL){
+		if(printf("%s is neither installed nor available\n",str) < 0){
+			return -1;
+		}
+		// FIXME check for available version
+		/*
 		}else if(printf("%s is not installed (%s available from %s)\n",
 				str,pkgobj_version(newpo),pkglist_dist(pl)) < 0){
 			return -1;
 		}
+		*/
 	}else{
-		if((newpo = pkgcache_find_newest(foc->pc,str,&pl)) == NULL){
+		// FIXME check for available version
+		pl = foc->stat;
+		/*if((newpo = pkgcache_find_newest(foc->pc,str,&pl)) == NULL){
 			if(printf("%s %s is installed (unavailable)\n",
 						str,pkgobj_version(po)) < 0){
 				return -1;
@@ -76,7 +80,7 @@ filtered_output_callback(const char *str,const void *opaque){
 						pkgobj_version(newpo)) < 0){
 				return -1;
 			}
-		}else if(printf("%s/%s uptodate %s\n",str,pkglist_dist(pl),
+		}else */if(printf("%s/%s uptodate %s\n",str,pkglist_dist(pl),
 					pkgobj_version(po)) < 0){
 			return -1;
 		}

@@ -149,7 +149,8 @@ PUBLIC void *
 match_dfactx_string(struct dfactx *,const char *);
 
 PUBLIC int
-walk_dfa(const struct dfa *,int (*)(const char *,const void *),const void *);
+walk_dfa(const struct dfa *,int (*)(const char *,const void *,const void *),
+					const void *);
 
 #ifdef __cplusplus
 }

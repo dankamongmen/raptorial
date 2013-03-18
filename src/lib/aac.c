@@ -170,12 +170,13 @@ void *match_dfactx_string(dfactx *dctx,const char *str){
 
 static int
 recurse_dfa(const dfa *d,const dfavtx *dvtx,char *str,unsigned stroff,
-			int (*cb)(const char *,const void *),const void *opaq){
+			int (*cb)(const char *,const void *,const void *),
+						const void *opaq){
 	unsigned e;
 
 	if(dvtx->val){
 		str[stroff] = '\0';
-		if(cb(str,opaq)){
+		if(cb(str,dvtx->val,opaq)){
 			return -1;
 		}
 	}
@@ -189,7 +190,8 @@ recurse_dfa(const dfa *d,const dfavtx *dvtx,char *str,unsigned stroff,
 	return 0;
 }
 
-int walk_dfa(const dfa *d,int (*cb)(const char *,const void *),const void *opaq){
+int walk_dfa(const dfa *d,int (*cb)(const char *,const void *,const void *),
+					const void *opaq){
 	if(d){ // New DFAs get longest = 1, so needn't check that
 		char str[d->longest];
 
