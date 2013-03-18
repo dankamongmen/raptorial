@@ -165,7 +165,14 @@ int main(int argc,char **argv){
 	dfa = NULL;
 	argv += optind;
 	while(*argv){
-		if(augment_dfa(&dfa,*argv,*argv)){
+		struct pkgobj *po;
+
+		if((po = create_stub_package(*argv,&err)) == NULL){
+			fprintf(stderr,"Couldn't create stub package %s (%s?)\n",
+				*argv,strerror(err));
+			return EXIT_FAILURE;
+		}
+		if(augment_dfa(&dfa,*argv,po)){
 			return EXIT_FAILURE;
 		}
 		++argv;

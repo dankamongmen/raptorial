@@ -831,3 +831,12 @@ pkgcache_find_newest(const pkgcache *pc,const char *pkg,const pkglist **pl){
 	*pl = nfmarsh.plfound;
 	return nfmarsh.pkg;
 }
+
+struct pkgobj *create_stub_package(const char *name,int *err){
+	pkgobj *po;
+
+	if((po = create_package(name,strlen(name),NULL,0,NULL,0)) == NULL){
+		*err = errno;
+	}
+	return po;
+}

@@ -134,6 +134,9 @@ typedef struct dfactx {
 
 dfactx *create_dfactx(const struct dfa *);
 
+PUBLIC struct pkgobj *
+create_stub_package(const char *,int *);
+
 void init_dfactx(dfactx *,const struct dfa *);
 
 PUBLIC int
