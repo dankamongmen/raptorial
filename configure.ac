@@ -17,10 +17,11 @@ AM_PROG_CC_C_O
 
 AX_PTHREAD
 
-AC_CHECK_HEADERS([blossom.h], ,[AC_MSG_ERROR([Couldn't find blossom.h.])])
-AC_CHECK_LIB(blossom,blossom_pthreads, [have_libblossom=yes],
-	     [AC_MSG_ERROR([Couldn't find libblossom.])])
-	LIBS+=" -lblossom"
+PKG_PROG_PKG_CONFIG
+
+PKG_CHECK_MODULES(LIBBLOSSOM, libblossom >= 1.2.1, [have_libblossom=yes])
+CFLAGS+=" $LIBBLOSSOM_LIBS"
+LIBS+=" $LIBBLOSSOM_LIBS"
 
 AX_PROG_XSLTPROC
 if test "x$XSLTPROC" = "x" ; then
