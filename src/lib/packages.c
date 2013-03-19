@@ -798,7 +798,7 @@ struct newfindmarsh {
 	pthread_mutex_t lock;
 };
 
-static const void *
+/*static const void *
 par_pkglist_find(void *vnfmarsh){
 	struct newfindmarsh *nfmarsh = vnfmarsh;
 	const pkgobj *po = NULL;
@@ -826,9 +826,20 @@ par_pkglist_find(void *vnfmarsh){
 		po = pl ? pkglist_find(pl,nfmarsh->str) : NULL;
 	}while(pl);
 	return NULL;
-}
+}*/
 
 PUBLIC const struct pkgobj *
+pkgcache_find_newest(const pkgcache *pc,const char *pkg,const pkglist **pl){
+	for(*pl = pkgcache_begin(pc) ; *pl ; *pl = pkgcache_next(*pl)){
+		const pkgobj *po;
+
+		po = pkglist_find(*pl,pkg);
+		if(po) return po;
+	}
+	return NULL;
+}
+
+/*PUBLIC const struct pkgobj *
 pkgcache_find_newest(const pkgcache *pc,const char *pkg,const pkglist **pl){
 	struct newfindmarsh nfmarsh = {
 		.pc = pc,
@@ -861,7 +872,7 @@ pkgcache_find_newest(const pkgcache *pc,const char *pkg,const pkglist **pl){
 	}
 	*pl = nfmarsh.plfound;
 	return nfmarsh.pkg;
-}
+}*/
 
 struct pkgobj *create_stub_package(const char *name,int *err){
 	pkgobj *po;

@@ -83,7 +83,7 @@ augment_dfa(dfa **space,const char *str,void *val){
 		if((*space = malloc(sizeof(**space))) == NULL){
 			return -1;
 		}
-		(*space)->vtxalloc = 8;
+		(*space)->vtxalloc = 1024;
 		if(((*space)->vtxarray = malloc(sizeof(*(*space)->vtxarray) * (*space)->vtxalloc)) == NULL){
 			free(*space);
 			return -1;

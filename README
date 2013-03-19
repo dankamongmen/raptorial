@@ -52,19 +52,6 @@ Requirements|
 
 Libblossom (https://github.com/dankamongmen/libblossom)
 
-----------------.
-Similar projects|
-----------------'
-
-libept
- http://web.mornfall.net/libept.html
- Used by debtags, packagesearch, aptitude, synaptic, and goplay
- Uses libapt-pkg and libxapian
-
-libapt-front
- http://libapt-front.alioth.debian.org/
- Superseded by libept
-
 --------.
 Building|
 --------'
@@ -92,3 +79,17 @@ appear to work in apt-show-versions anyway.
 
 These options might be added for backwards compatibility, but there are no
 plans to do so currently.
+
+----------------.
+Similar projects|
+----------------'
+
+libept
+ http://web.mornfall.net/libept.html
+ Used by debtags, packagesearch, aptitude, synaptic, and goplay
+ Uses libapt-pkg and libxapian
+
+libapt-front
+ http://libapt-front.alioth.debian.org/
+ Superseded by libept
+
