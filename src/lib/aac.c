@@ -158,7 +158,6 @@ void *match_dfactx_char(dfactx *dctx,int s){
 	pos = edge_search(&dctx->dfa->vtxarray[dctx->cur],s);
 	if(pos >= dctx->dfa->vtxarray[dctx->cur].setsize ||
 			dctx->dfa->vtxarray[dctx->cur].set[pos].label != s){
-		// FIXME take the sigma (failure) function
 		return NULL;
 	}
 	return dctx->dfa->vtxarray[
@@ -172,7 +171,6 @@ void *match_dfactx_string(dfactx *dctx,const char *str){
 		pos = edge_search(&dctx->dfa->vtxarray[dctx->cur],*str);
 		if(pos >= dctx->dfa->vtxarray[dctx->cur].setsize ||
 				dctx->dfa->vtxarray[dctx->cur].set[pos].label != *str){
-			// FIXME take the sigma (failure) function
 			init_dfactx(dctx,dctx->dfa);
 			return NULL;
 		}
@@ -189,7 +187,6 @@ void *match_dfactx_nstring(dfactx *dctx,const char *s,size_t len){
 		pos = edge_search(&dctx->dfa->vtxarray[dctx->cur],*s);
 		if(pos >= dctx->dfa->vtxarray[dctx->cur].setsize ||
 				dctx->dfa->vtxarray[dctx->cur].set[pos].label != *s){
-			// FIXME take the sigma (failure) function
 			init_dfactx(dctx,dctx->dfa);
 			return NULL;
 		}
