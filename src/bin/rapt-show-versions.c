@@ -31,18 +31,20 @@ struct focmarsh {
 
 static int
 all_output_callback(const char *str,const void *peropaq,const void *opaque){
+	const struct pkgobj *statpkg = peropaq;
 	const struct focmarsh *foc = opaque;
-	const struct pkgobj *po = peropaq;
 	const struct pkglist *pl;
-	/*dfactx dctx;
 
-	init_dctx(&dctx,&foc->dfa);
-	match_dfa_string(&dctx,str)*/
 	pl = foc->stat;
-	// FIXME get all versions from po
-	if(printf("%s %s %s %s\n",str,pkgobj_version(po),
-		pkglist_dist(pl),pkglist_uri(pl)) < 0){
-			return -1;
+	for(pl = pkgcache_begin(foc->pc) ; pl ; pl = pkgcache_next(pl)){
+		const struct pkgobj *po;
+
+		if( (po = pkglist_find(pl,pkgobj_name(statpkg))) ){
+			if(printf("%s %s %s %s\n",str,pkgobj_version(po),
+				pkglist_dist(pl),pkglist_uri(pl)) < 0){
+					return -1;
+			}
+		}
 	}
 	return 0;
 }
