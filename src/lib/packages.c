@@ -240,7 +240,8 @@ lex_chunk(size_t offset,const char *start,const char *end,
 				if(pp->dfa && filter){
 					init_dfactx(&dctx,*pp->dfa);
 					if( (po = match_dfactx_nstring(&dctx,pname,pnamelen)) ){
-						if(fill_package(po,pver,pverlen,pstatus,pstatuslen)){
+						if((po = create_package(pname,pnamelen,pver,pverlen,
+								pstatus,pstatuslen)) == NULL){
 							return -1;
 						}
 					}
