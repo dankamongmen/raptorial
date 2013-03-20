@@ -51,14 +51,11 @@ dfactx *create_dfactx(const dfa *space){
 // search to insert the edge.
 static inline unsigned
 edge_search(const dfavtx *node,int s){
-	unsigned max,min,pos;
+	/*unsigned max,min,pos;
 
 	min = 0;
 	max = node->setsize;
-	do{
-		if((pos = (min + max) / 2) == max){
-			break;
-		}
+	while((pos = (min + max) / 2) < max){
 		if(node->set[pos].label == s){
 			break;
 		}
@@ -67,8 +64,19 @@ edge_search(const dfavtx *node,int s){
 		}else{
 			min = pos;
 		}
-	}while(pos != (min + max) / 2);
-	return pos;
+		if(pos == (min + max) / 2){
+			break;
+		}
+	}
+	return pos;*/
+	unsigned p;
+
+	for(p = 0 ; p < node->setsize ; ++p){
+		if(node->set[p].label == s){
+			break;
+		}
+	}
+	return p;
 }
 
 PUBLIC int
@@ -124,7 +132,7 @@ augment_dfa(dfa **space,const char *str,void *val){
 			cur->set = tmp;
 			if(pos < cur->setsize){
 				memmove(cur->set + pos + 1,cur->set + pos,
-					sizeof(cur->set) * (cur->setsize - pos));
+					sizeof(*cur->set) * (cur->setsize - pos));
 			}
 			++cur->setsize;
 			cur->set[pos].label = *s;
