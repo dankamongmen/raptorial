@@ -51,6 +51,7 @@ dfactx *create_dfactx(const dfa *space){
 // search to insert the edge.
 static inline unsigned
 edge_search(const dfavtx *node,int s){
+	/*
 	int max,min;
 	unsigned pos;
 
@@ -69,6 +70,18 @@ edge_search(const dfavtx *node,int s){
 		}
 	}
 	return pos;
+	*/
+	unsigned p;
+
+	for(p = 0 ; p < node->setsize ; ++p){
+		if(node->set[p].label == s){
+			break;
+		}
+		if(node->set[p].label > s){
+			break;
+		}
+	}
+	return p;
 }
 
 PUBLIC int
