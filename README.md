@@ -61,19 +61,24 @@ Run ./configure && make && make install, seasoned to taste.
 
 # Differences from standard tools
 
-## rapt-show-versions...
+## Differences between rapt-show-versions(1) and apt-show-versions(1)
 
-* neither requires nor makes use of the apt-show-versions cache.
+* neither requires nor makes use of the apt-show-versions(1) cache.
   The -i/--initialize option is neither required nor supported.
 * does not support the -p/--package option; it was syntactic sugar.
   Simply provide a package specification as an argument.
 * does not support the -r/--regex nor -R/--regex-all options; they were
   syntactic sugar. Simply provide a regular expression to use it for search.
 * does not support the -v/--verbose option. It does not appear to work in
-  apt-show-versions anyway.
+  apt-show-versions(1) anyway.
 
 These options might be added for backwards compatibility, but there are no
 plans to do so currently.
+
+## Differences between rapt-file(1) and apt-file(1)
+
+* neither requires nor makes use of the apt-file(1) cache.
+  The -c/--cache option is neither required nor supported.
 
 # Design
 
