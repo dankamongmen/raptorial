@@ -42,7 +42,10 @@ allow robust, safe, high-performance operation.
 Required components ought be detected or explicitly not detected by the
 Autotools configure script. You'll need:
 
-Libblossom (https://github.com/dankamongmen/libblossom)
+* Libblossom (https://github.com/dankamongmen/libblossom)
+* A C compiler
+* POSIX threads
+* GNU Autotools (only if building from a git checkout)
 
 Raptorial ought build on any platform capable of running libblossom, which
 (right now) means just about any POSIX platform.
@@ -50,7 +53,7 @@ Raptorial ought build on any platform capable of running libblossom, which
 # Building
 
 If you're using a git checkout, run 'autoreconf -fis'. There's no need to do
-this for a release tarball. This will require the Autoconf tools.
+this for a release tarball. This will require the GNU Autotools.
 
 Run ./configure && make && make install, seasoned to taste.
 
