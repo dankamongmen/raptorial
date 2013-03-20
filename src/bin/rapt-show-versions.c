@@ -69,7 +69,8 @@ filtered_output_callback(const char *str,const void *peropaq,const void *opaque)
 						str,pkgobj_version(po)) < 0){
 				return -1;
 			}
-		}else if(strcmp(pkgobj_version(newpo),pkgobj_version(po))){
+			// FIXME use debian-version-specific comparison
+		}else if(strcmp(pkgobj_version(newpo),pkgobj_version(po)) > 0){
 			if(printf("%s/%s upgradeable from %s to %s\n",
 						str,pkglist_dist(pl),
 						pkgobj_version(po),
@@ -89,6 +90,7 @@ all_output(const struct dfa *dfa,const struct pkgcache *pc,const struct pkglist 
 	const struct focmarsh foc = {
 		.pc = pc,
 		.stat = stat,
+		.dfa = dfa,
 	};
 
 	return walk_dfa(dfa,all_output_callback,&foc);
@@ -99,6 +101,7 @@ installed_output(const struct dfa *dfa,const struct pkgcache *pc,const struct pk
 	const struct focmarsh foc = {
 		.pc = pc,
 		.stat = stat,
+		.dfa = dfa,
 	};
 
 	return walk_dfa(dfa,filtered_output_callback,&foc);
