@@ -15,22 +15,19 @@
 #include <sys/types.h>
 #include <raptorial.h>
 
-// For now, the datastore is a DAG; pkgobjs do not link to their containing pkgcaches,
-// and pkgcaches do not link to their containing releases. This might not fly once we
-// need compare multiple versions of a package across several pkgcaches, as we'd then
-// need do a search on each of N caches. So long as we can find a pkgobj in a pkgcache
-// quickly enough, though, this isn't necessarily a problem. We'll thus definitely
-// need at least lgN search on pkgcaches; this is simple enough, though. Right now
-// we're just using linked lists, which will definitely have to go FIXME.
+// For now, the datastore is a trie, anchored by selection packages (either
+// those specified on the command line, or those currently installed). These
+// dist-wide linked lists ought not be used for searching, and no interface is
+// provided to do so.
 typedef struct pkgobj {
 	struct pkgobj *next;
 	char *name;
 	char *version;
-	int haslock;
 	const struct pkglist *pl;
+	int haslock;
 
-	struct pkgobj *dfanext;
 	pthread_mutex_t lock;
+	struct pkgobj *dfanext;
 } pkgobj;
 
 // One package cache per Packages/Sources file. A release will generally have
