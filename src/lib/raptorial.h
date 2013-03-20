@@ -156,6 +156,9 @@ pkgobj_uri(const struct pkgobj *);
 PUBLIC const char *
 pkgobj_dist(const struct pkgobj *);
 
+PUBLIC int
+debcmp(const char *,const char *);
+
 #ifdef __cplusplus
 }
 #endif

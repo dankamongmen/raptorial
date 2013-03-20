@@ -65,8 +65,7 @@ filtered_output_callback(const char *str,const void *peropaq,
 						str,pkgobj_version(po)) < 0){
 				return -1;
 			}
-			// FIXME use debian-version-specific comparison
-		}else if(strcmp(pkgobj_version(newpo),pkgobj_version(po)) > 0){
+		}else if(debcmp(pkgobj_version(newpo),pkgobj_version(po)) > 0){
 			if(printf("%s/%s upgradeable from %s to %s\n",
 						str,pkgobj_dist(newpo),
 						pkgobj_version(po),

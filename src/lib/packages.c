@@ -861,7 +861,7 @@ pkgcache_find_newest(const pkgobj *mpo){
 	const pkgobj *po,*newest = NULL;
 
 	for(po = mpo->dfanext ; po ; po = po->dfanext){
-		if(!newest || strcmp(newest->version,po->version) < 0){
+		if(!newest || debcmp(newest->version,po->version) < 0){
 			newest = po;
 		}
 	}
