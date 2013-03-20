@@ -72,7 +72,7 @@ edge_search(const dfavtx *node,int s){
 	unsigned p;
 
 	for(p = 0 ; p < node->setsize ; ++p){
-		if(node->set[p].label == s){
+		if(s <= node->set[p].label){
 			break;
 		}
 	}
