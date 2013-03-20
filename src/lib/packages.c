@@ -90,6 +90,7 @@ fill_package(pkgobj *po,const char *ver,size_t verlen,const char *status,
 	}else{
 		po->status = NULL;
 	}
+	po->next = NULL;
 	return 0;
 }
 
@@ -204,7 +205,6 @@ lex_chunk(size_t offset,const char *start,const char *end,
 	}else{
 		c = start;
 	}
-	init_dfactx(&dctx,pp->dfa ? *pp->dfa : NULL);
 	// We are at the beginning of our chunk, which might be 0 bytes. Any
 	// partial record with which our map started has been skipped
 	// Upon reaching the (optional, only one allowed) delimiter on each
@@ -238,12 +238,12 @@ lex_chunk(size_t offset,const char *start,const char *end,
 					}
 				}
 				if(pp->dfa && filter){
+					init_dfactx(&dctx,*pp->dfa);
 					if( (po = match_dfactx_nstring(&dctx,pname,pnamelen)) ){
 						if(fill_package(po,pver,pverlen,pstatus,pstatuslen)){
 							return -1;
 						}
 					}
-					init_dfactx(&dctx,*pp->dfa);
 				}else if((po = create_package(pname,pnamelen,pver,pverlen,
 							pstatus,pstatuslen)) == NULL){
 					return -1;
