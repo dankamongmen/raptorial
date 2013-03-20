@@ -1,16 +1,13 @@
 RAPTORIAL
 =========
+by Nick Black (nick.black@sprezzatech.com)
 
 ![image](doc/raptorial.jpg)
 
-by Nick Black <nick.black@sprezzatech.com>
-
   Raptorial \Rap*to"ri*al\ (r[a^]p*t[=o]"r[i^]*al), a. (Zool.)
 
-     (a) Rapacious; living upon prey; -- said especially of
-         certain birds.
-     (b) Adapted for seizing prey; -- said of the legs, claws,
-         etc., of insects, birds, and other animals.
+* (a) Rapacious; living upon prey
+* (b) Adapted for seizing prey
 
  (from The Collaborative International Dictionary of English v.0.48 [gcide])
 
