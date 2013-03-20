@@ -1,7 +1,12 @@
-RAPTORIAL|                      by Nick Black <nick.black@sprezzatech.com>
----------'
+RAPTORIAL
+=========
+
+![image](doc/raptorial.jpg)
+
+by Nick Black <nick.black@sprezzatech.com>
 
   Raptorial \Rap*to"ri*al\ (r[a^]p*t[=o]"r[i^]*al), a. (Zool.)
+
      (a) Rapacious; living upon prey; -- said especially of
          certain birds.
      (b) Adapted for seizing prey; -- said of the legs, claws,
@@ -42,6 +47,9 @@ allow robust, safe, high-performance operation.
 # Requirements
 
 Libblossom (https://github.com/dankamongmen/libblossom)
+
+Raptorial ought build on any platform capable of running libblossom, which
+(right now) means just about any POSIX platform.
 
 # Building
 
@@ -88,7 +96,7 @@ lists within a directory are lexed in parallel, and the lists themselves will
 ideally also be chunked and lexed in parallel (they're not right now,
 because libblossom doesn't allow hierarchal blossoms. See [bug #698][b698]).
 
-### Filtered list lexing
+## Filtered list lexing
 
 Whenever we lex a list (status or package), we can accept a DFA to walk whilst
 lexing. In this case, we do not make an entry unless there's already one in the
@@ -102,12 +110,11 @@ present.
 
 # Similar projects
 
-libept
- http://web.mornfall.net/libept.html
- Used by debtags, packagesearch, aptitude, synaptic, and goplay
- Uses libapt-pkg and libxapian
+## libept
+* http://web.mornfall.net/libept.html
+* Used by debtags, packagesearch, aptitude, synaptic, and goplay
+* Uses libapt-pkg and libxapian
 
-libapt-front
- http://libapt-front.alioth.debian.org/
- Superseded by libept
-
+## libapt-front
+* http://libapt-front.alioth.debian.org/
+* Superseded by libept
