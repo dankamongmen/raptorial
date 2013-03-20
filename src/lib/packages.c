@@ -25,7 +25,6 @@
 typedef struct pkgobj {
 	struct pkgobj *next;
 	char *name;
-	char *status;
 	char *version;
 } pkgobj;
 
@@ -63,14 +62,12 @@ struct pkgparse {
 static void
 free_package(pkgobj *po){
 	free(po->version);
-	free(po->status);
 	free(po->name);
 	free(po);
 }
 
 static int
-fill_package(pkgobj *po,const char *ver,size_t verlen,const char *status,
-					size_t statuslen){
+fill_package(pkgobj *po,const char *ver,size_t verlen){
 	if(ver){
 		if((po->version = malloc(sizeof(*po->version) * (verlen + 1))) == NULL){
 			return -1;
@@ -80,23 +77,12 @@ fill_package(pkgobj *po,const char *ver,size_t verlen,const char *status,
 	}else{
 		po->version = NULL;
 	}
-	if(status){
-		if((po->status = malloc(sizeof(*po->status) * (statuslen + 1))) == NULL){
-			free(po->version);
-			return -1;
-		}
-		strncpy(po->status,status,statuslen);
-		po->status[statuslen] = '\0';
-	}else{
-		po->status = NULL;
-	}
 	po->next = NULL;
 	return 0;
 }
 
 static pkgobj *
-create_package(const char *name,size_t namelen,const char *ver,size_t verlen,
-			const char *status,size_t statuslen){
+create_package(const char *name,size_t namelen,const char *ver,size_t verlen){
 	pkgobj *po;
 
 	if( (po = malloc(sizeof(*po))) ){
@@ -106,7 +92,7 @@ create_package(const char *name,size_t namelen,const char *ver,size_t verlen,
 		}
 		strncpy(po->name,name,namelen);
 		po->name[namelen] = '\0';
-		if(fill_package(po,ver,verlen,status,statuslen)){
+		if(fill_package(po,ver,verlen)){
 			free(po->name);
 			free(po);
 			return NULL;
@@ -165,7 +151,7 @@ lex_chunk(size_t offset,const char *start,const char *end,
 		const char *veryend,pkgobj ***enq,
 		struct pkgparse *pp){
 	const char *expect,*pname,*pver,*pstatus,*c,*delim;
-	size_t pnamelen,pverlen,pstatuslen;
+	size_t pnamelen,pverlen;
 	int rewardstate,state;
 	unsigned newp = 0;
 	unsigned filter;
@@ -217,7 +203,7 @@ lex_chunk(size_t offset,const char *start,const char *end,
 	pname = NULL; pver = NULL; pstatus = NULL;
 	state = STATE_RESET; // number of newlines we've seen, bounded by 2
 	rewardstate = STATE_RESET;
-	pstatuslen = pverlen = pnamelen = 0;
+	pverlen = pnamelen = 0;
 	while(c < end || (state != STATE_RESET && c < veryend)){
 		if(*c == '\n'){ // State machine is driven by newlines
 			switch(state){
@@ -225,29 +211,24 @@ lex_chunk(size_t offset,const char *start,const char *end,
 				if(pname == NULL || pnamelen == 0){
 					return -1; // No package name
 				}
-				if(pp->statusfile){
-					if(pstatus == NULL || pstatuslen == 0){
-						return -1; // No package status
-					}
-				}else{
-				       	if(pstatus){
-						return -1; // Status in package list
-					}
-					if(pver == NULL || pverlen == 0){
+				if(pver == NULL || pverlen == 0){
+					if(!pp->statusfile){
 						return -1; // No package version
 					}
 				}
-				if(pp->dfa && filter){
-					init_dfactx(&dctx,*pp->dfa);
-					if( (po = match_dfactx_nstring(&dctx,pname,pnamelen)) ){
-						if((po = create_package(pname,pnamelen,pver,pverlen,
-								pstatus,pstatuslen)) == NULL){
-							return -1;
+				if(!pp->statusfile || pstatus){
+					if(pp->dfa && filter){
+						init_dfactx(&dctx,*pp->dfa);
+						if( (po = match_dfactx_nstring(&dctx,pname,pnamelen)) ){
+							if((po = create_package(pname,pnamelen,pver,pverlen)) == NULL){
+								return -1;
+							}
 						}
+					}else if((po = create_package(pname,pnamelen,pver,pverlen)) == NULL){
+						return -1;
 					}
-				}else if((po = create_package(pname,pnamelen,pver,pverlen,
-							pstatus,pstatuslen)) == NULL){
-					return -1;
+				}else{
+					po = NULL;
 				}
 				// Package ended!
 				if(po){
@@ -281,7 +262,6 @@ lex_chunk(size_t offset,const char *start,const char *end,
 				if(pstatus){
 					return -1;
 				}
-				pstatuslen = c - delim;
 				pstatus = delim;
 				break;
 			}
@@ -303,7 +283,7 @@ lex_chunk(size_t offset,const char *start,const char *end,
 					rewardstate = STATE_PACKAGE_DELIMITED;
 				}else if(*c == 'S'){
 					state = STATE_EXPECT;
-					expect = "tatus:";
+					expect = "tatus: install ok installed";
 					rewardstate = STATE_STATUS_DELIMITED;
 				}else{
 					state = STATE_PDATA;
@@ -314,6 +294,7 @@ lex_chunk(size_t offset,const char *start,const char *end,
 					if(!*++expect){
 						state = STATE_DELIM;
 						delim = c + 1;
+						state = rewardstate;
 					}
 				}else{
 					state = STATE_PDATA;
@@ -323,7 +304,7 @@ lex_chunk(size_t offset,const char *start,const char *end,
 				if(isspace(*c)){
 					++delim;
 				}else{
-					state = rewardstate;
+					state = STATE_PDATA;
 				}
 				break;
 		}
@@ -616,11 +597,6 @@ pkgobj_name(const pkgobj *po){
 }
 
 PUBLIC const char *
-pkgobj_status(const pkgobj *po){
-	return po->status;
-}
-
-PUBLIC const char *
 pkglist_dist(const pkglist *pl){
 	return pl->distribution;
 }
@@ -878,7 +854,7 @@ pkgcache_find_newest(const pkgcache *pc,const char *pkg,const pkglist **pl){
 struct pkgobj *create_stub_package(const char *name,int *err){
 	pkgobj *po;
 
-	if((po = create_package(name,strlen(name),NULL,0,NULL,0)) == NULL){
+	if((po = create_package(name,strlen(name),NULL,0)) == NULL){
 		*err = errno;
 	}
 	return po;
