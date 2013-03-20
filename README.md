@@ -4,12 +4,10 @@ by Nick Black (nick.black@sprezzatech.com)
 
 ![image](doc/raptorial.jpg)
 
-  Raptorial \Rap*to"ri*al\ (r[a^]p*t[=o]"r[i^]*al), a. (Zool.)
-
+Raptorial \Rap*to"ri*al\ (r[a^]p*t[=o]"r[i^]*al), a. (Zool.)
 * (a) Rapacious; living upon prey
 * (b) Adapted for seizing prey
-
- (from The Collaborative International Dictionary of English v.0.48 [gcide])
+(from The Collaborative International Dictionary of English v.0.48 [gcide])
 
 # What is Raptorial?
 
