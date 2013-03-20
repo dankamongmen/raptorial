@@ -26,6 +26,11 @@ typedef struct pkgobj {
 	struct pkgobj *next;
 	char *name;
 	char *version;
+	int haslock;
+	const struct pkglist *pl;
+
+	struct pkgobj *dfanext;
+	pthread_mutex_t lock;
 } pkgobj;
 
 // One package cache per Packages/Sources file. A release will generally have
@@ -66,8 +71,8 @@ free_package(pkgobj *po){
 	free(po);
 }
 
-static int
-fill_package(pkgobj *po,const char *ver,size_t verlen){
+static inline int
+fill_package(pkgobj *po,const char *ver,size_t verlen,const pkglist *pl){
 	if(ver){
 		if((po->version = malloc(sizeof(*po->version) * (verlen + 1))) == NULL){
 			return -1;
@@ -77,12 +82,15 @@ fill_package(pkgobj *po,const char *ver,size_t verlen){
 	}else{
 		po->version = NULL;
 	}
+	po->dfanext = NULL;
 	po->next = NULL;
+	po->pl = pl;
 	return 0;
 }
 
 static pkgobj *
-create_package(const char *name,size_t namelen,const char *ver,size_t verlen){
+create_package(const char *name,size_t namelen,const char *ver,size_t verlen,
+					const pkglist *pl){
 	pkgobj *po;
 
 	if( (po = malloc(sizeof(*po))) ){
@@ -92,7 +100,7 @@ create_package(const char *name,size_t namelen,const char *ver,size_t verlen){
 		}
 		strncpy(po->name,name,namelen);
 		po->name[namelen] = '\0';
-		if(fill_package(po,ver,verlen)){
+		if(fill_package(po,ver,verlen,pl)){
 			free(po->name);
 			free(po);
 			return NULL;
@@ -218,14 +226,27 @@ lex_chunk(size_t offset,const char *start,const char *end,
 				}
 				if(!pp->statusfile || pstatus){
 					if(pp->dfa && filter){
+						pkgobj *mpo;
+
 						init_dfactx(&dctx,*pp->dfa);
-						if( (po = match_dfactx_nstring(&dctx,pname,pnamelen)) ){
-							if((po = create_package(pname,pnamelen,pver,pverlen)) == NULL){
+						if( (mpo = match_dfactx_nstring(&dctx,pname,pnamelen)) ){
+							if((po = create_package(pname,pnamelen,pver,pverlen,pp->sharedpcache)) == NULL){
 								return -1;
 							}
+							pthread_mutex_lock(&mpo->lock);
+							po->dfanext = mpo->dfanext;
+							mpo->dfanext = po;
+							pthread_mutex_unlock(&mpo->lock);
+							po->haslock = 0;
+						}else{
+							po = NULL;
 						}
-					}else if((po = create_package(pname,pnamelen,pver,pverlen)) == NULL){
+					}else if((po = create_package(pname,pnamelen,pver,pverlen,pp->sharedpcache)) == NULL){
 						return -1;
+					}else if(pthread_mutex_init(&po->lock,NULL)){
+						free_package(po);
+					}else{
+						po->haslock = 1;
 					}
 				}else{
 					po = NULL;
@@ -283,7 +304,7 @@ lex_chunk(size_t offset,const char *start,const char *end,
 					rewardstate = STATE_PACKAGE_DELIMITED;
 				}else if(*c == 'S'){
 					state = STATE_EXPECT;
-					expect = "tatus: install ok installed";
+					expect = "tatus: install ";
 					rewardstate = STATE_STATUS_DELIMITED;
 				}else{
 					state = STATE_PDATA;
@@ -294,7 +315,6 @@ lex_chunk(size_t offset,const char *start,const char *end,
 					if(!*++expect){
 						state = STATE_DELIM;
 						delim = c + 1;
-						state = rewardstate;
 					}
 				}else{
 					state = STATE_PDATA;
@@ -304,7 +324,7 @@ lex_chunk(size_t offset,const char *start,const char *end,
 				if(isspace(*c)){
 					++delim;
 				}else{
-					state = STATE_PDATA;
+					state = rewardstate;
 				}
 				break;
 		}
@@ -753,11 +773,10 @@ lex_packages_dir(const char *dir,int *err,struct dfa *dfa){
 	return pc;
 }
 
-PUBLIC const pkgobj *
+/*PUBLIC const pkgobj *
 pkglist_find(const pkglist *pl,const char *pkg){
 	const pkgobj *po;
 
-	// FIXME do binary search on provided list. requires sortedness assurance
 	for(po = pkglist_begin(pl) ; po ; po = pkglist_next(po)){
 		if(strcmp(pkg,pkgobj_name(po)) == 0){
 			return po;
@@ -775,7 +794,7 @@ struct newfindmarsh {
 	pthread_mutex_t lock;
 };
 
-/*static const void *
+static const void *
 par_pkglist_find(void *vnfmarsh){
 	struct newfindmarsh *nfmarsh = vnfmarsh;
 	const pkgobj *po = NULL;
@@ -804,17 +823,6 @@ par_pkglist_find(void *vnfmarsh){
 	}while(pl);
 	return NULL;
 }*/
-
-PUBLIC const struct pkgobj *
-pkgcache_find_newest(const pkgcache *pc,const char *pkg,const pkglist **pl){
-	for(*pl = pkgcache_begin(pc) ; *pl ; *pl = pkgcache_next(*pl)){
-		const pkgobj *po;
-
-		po = pkglist_find(*pl,pkg);
-		if(po) return po;
-	}
-	return NULL;
-}
 
 /*PUBLIC const struct pkgobj *
 pkgcache_find_newest(const pkgcache *pc,const char *pkg,const pkglist **pl){
@@ -851,11 +859,43 @@ pkgcache_find_newest(const pkgcache *pc,const char *pkg,const pkglist **pl){
 	return nfmarsh.pkg;
 }*/
 
+PUBLIC const struct pkgobj *
+pkgcache_find_newest(const pkgobj *mpo){
+	const pkgobj *po,*newest = NULL;
+
+	for(po = mpo->dfanext ; po ; po = po->dfanext){
+		if(!newest || strcmp(newest->version,po->version) < 0){
+			newest = po;
+		}
+	}
+	return newest;
+}
+
 struct pkgobj *create_stub_package(const char *name,int *err){
 	pkgobj *po;
 
-	if((po = create_package(name,strlen(name),NULL,0)) == NULL){
+	if((po = create_package(name,strlen(name),NULL,0,NULL)) == NULL){
 		*err = errno;
 	}
 	return po;
+}
+
+const pkgobj *
+pkgobj_matchbegin(const pkgobj *mpo){
+	return mpo->dfanext;
+}
+
+const pkgobj *
+pkgobj_matchnext(const pkgobj *po){
+	return po->dfanext;
+}
+
+const char *
+pkgobj_uri(const pkgobj *po){
+	return pkglist_uri(po->pl);
+}
+
+PUBLIC const char *
+pkgobj_dist(const pkgobj *po){
+	return pkglist_dist(po->pl);
 }

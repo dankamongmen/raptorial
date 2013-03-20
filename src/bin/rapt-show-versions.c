@@ -30,43 +30,37 @@ struct focmarsh {
 };
 
 static int
-all_output_callback(const char *str,const void *peropaq,const void *opaque){
+all_output_callback(const char *str,const void *peropaq,
+		const void *opaque __attribute__ ((unused))){
 	const struct pkgobj *statpkg = peropaq;
-	const struct focmarsh *foc = opaque;
-	const struct pkglist *pl;
+	const struct pkgobj *po;
 
-	pl = foc->stat;
-	for(pl = pkgcache_begin(foc->pc) ; pl ; pl = pkgcache_next(pl)){
-		const struct pkgobj *po;
-
-		if( (po = pkglist_find(pl,pkgobj_name(statpkg))) ){
-			if(printf("%s %s %s %s\n",str,pkgobj_version(po),
-				pkglist_dist(pl),pkglist_uri(pl)) < 0){
-					return -1;
-			}
+	for(po = pkgobj_matchbegin(statpkg) ; po ; po = pkgobj_matchnext(po)){
+		if(printf("%s %s %s %s\n",str,pkgobj_version(po),
+			pkgobj_dist(po),pkgobj_uri(po)) < 0){
+				return -1;
 		}
 	}
 	return 0;
 }
 
 static int
-filtered_output_callback(const char *str,const void *peropaq,const void *opaque){
-	const struct focmarsh *foc = opaque;
+filtered_output_callback(const char *str,const void *peropaq,
+		const void *opaque __attribute__ ((unused))){
 	const struct pkgobj *po = peropaq;
 	const struct pkgobj *newpo;
-	const struct pkglist *pl;
 
 	if(pkgobj_version(po) == NULL){
-		if((newpo = pkgcache_find_newest(foc->pc,str,&pl)) == NULL){
+		if((newpo = pkgcache_find_newest(po)) == NULL){
 			if(printf("%s is neither installed nor available\n",str) < 0){
 				return -1;
 			}
 		}else if(printf("%s is not installed (%s available from %s)\n",
-				str,pkgobj_version(newpo),pkglist_dist(pl)) < 0){
+				str,pkgobj_version(newpo),pkgobj_dist(newpo)) < 0){
 			return -1;
 		}
 	}else{
-		if((newpo = pkgcache_find_newest(foc->pc,str,&pl)) == NULL){
+		if((newpo = pkgcache_find_newest(po)) == NULL){
 			if(printf("%s %s is installed (unavailable)\n",
 						str,pkgobj_version(po)) < 0){
 				return -1;
@@ -74,12 +68,12 @@ filtered_output_callback(const char *str,const void *peropaq,const void *opaque)
 			// FIXME use debian-version-specific comparison
 		}else if(strcmp(pkgobj_version(newpo),pkgobj_version(po)) > 0){
 			if(printf("%s/%s upgradeable from %s to %s\n",
-						str,pkglist_dist(pl),
+						str,pkgobj_dist(newpo),
 						pkgobj_version(po),
 						pkgobj_version(newpo)) < 0){
 				return -1;
 			}
-		}else if(printf("%s/%s uptodate %s\n",str,pkglist_dist(pl),
+		}else if(printf("%s/%s uptodate %s\n",str,pkgobj_dist(newpo),
 					pkgobj_version(po)) < 0){
 			return -1;
 		}

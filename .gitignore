@@ -43,3 +43,4 @@ src/tester/.deps/
 src/tester/.dirstamp
 src/tester/*.o
 stamp-h1
+tags

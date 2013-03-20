@@ -96,10 +96,7 @@ PUBLIC const struct pkgobj *
 pkglist_next(const struct pkgobj *);
 
 PUBLIC const struct pkgobj *
-pkglist_find(const struct pkglist *,const char *);
-
-PUBLIC const struct pkgobj *
-pkgcache_find_newest(const struct pkgcache *,const char *,const struct pkglist **);
+pkgcache_find_newest(const struct pkgobj *);
 
 PUBLIC const char *
 pkgobj_name(const struct pkgobj *);
@@ -146,6 +143,18 @@ match_dfactx_string(struct dfactx *,const char *);
 PUBLIC int
 walk_dfa(const struct dfa *,int (*)(const char *,const void *,const void *),
 					const void *);
+
+PUBLIC const struct pkgobj *
+pkgobj_matchbegin(const struct pkgobj *);
+
+PUBLIC const struct pkgobj *
+pkgobj_matchnext(const struct pkgobj *);
+
+PUBLIC const char *
+pkgobj_uri(const struct pkgobj *);
+
+PUBLIC const char *
+pkgobj_dist(const struct pkgobj *);
 
 #ifdef __cplusplus
 }
