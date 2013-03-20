@@ -14,7 +14,9 @@ tools making up the "APT ecosystem." By unifying a number of tools in one code
 base, it is hoped that performance, documentation, and testing will be
 improved, and that a saner interface to APT actions will be presented to
 developers. An emphasis will be put on making effective use of parallel
-resources, whether they be disks or CPUs.
+resources, whether they be disks or CPUs. It makes no use of on-disk cached
+representations of its primary datastore: all data is present exactly one time
+in the filesystem.
 
 Components include, or will include:
 
@@ -61,12 +63,12 @@ Run ./configure && make && make install, seasoned to taste.
 
 ## rapt-show-versions...
 
-* neither requires nor makes use of the apt-show-versions
-  cache. The -i/--initialize option is neither required nor supported.
-* does not support the -p/--package option, as this was never
-  necessary to use. Simply provide a package specification as an argument.
-* does not support the -r/--regex nor -R/--regex-all options.
-  Simply provide a regular expression to use it for search.
+* neither requires nor makes use of the apt-show-versions cache.
+  The -i/--initialize option is neither required nor supported.
+* does not support the -p/--package option; it was syntactic sugar.
+  Simply provide a package specification as an argument.
+* does not support the -r/--regex nor -R/--regex-all options; they were
+  syntactic sugar. Simply provide a regular expression to use it for search.
 * does not support the -v/--verbose option. It does not appear to work in
   apt-show-versions anyway.
 
