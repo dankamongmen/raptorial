@@ -7,9 +7,7 @@ by Nick Black (nick.black@sprezzatech.com)
 Raptorial \Rap*to"ri*al\ (r[a^]p*t[=o]"r[i^]*al), a. (Zool.)
 * (a) Rapacious; living upon prey
 * (b) Adapted for seizing prey
-(from The Collaborative International Dictionary of English v.0.48 [gcide])
-
-# What is Raptorial?
+(from The Collaborative International Dictionary of English v.0.48)
 
 Raptorial is a backwards-compatible, drop-in replacement for a collection of
 tools making up the "APT ecosystem." By unifying a number of tools in one code
@@ -22,16 +20,16 @@ Components include, or will include:
 
 * libraptorial. A redesigned interface around APT facilitating rich,
 	high-performance client applications.
+* rapt-show-versions. A drop-in, high-performance replacement for
+	apt-show-versions, making use of libraptorial.
 * librapt. A drop-in, high-performance replacement for libapt, implemented
 	as a wrapper around libraptorial.
 * rapt-get. A drop-in, high-performance replacement for apt-get, making use
 	of libraptorial.
-* raptorial-file. An drop-in, high-performance replacement for apt-file,
+* raptorial-file. A drop-in, high-performance replacement for apt-file,
 	making use of libraptorial.
 * raptitude. An ncurses-based package manager, similar in spirit to (but not
 	a drop-in replacement for) aptitude.
-* rapt-show-versions. A drop-in, high-performance replacement for
-	apt-show-versions, making use of libraptorial.
 
 It will also be possible to compile and link tools such as apt-get and aptitude
 against librapt (and indeed this is regularly done to test compatibility). The
@@ -40,6 +38,9 @@ as rapt-get and raptorial-file, since certain design choices in libapt do not
 allow robust, safe, high-performance operation.
 
 # Requirements
+
+Required components ought be detected or explicitly not detected by the
+Autotools configure script. You'll need:
 
 Libblossom (https://github.com/dankamongmen/libblossom)
 
@@ -55,17 +56,16 @@ Run ./configure && make && make install, seasoned to taste.
 
 # Differences from standard tools
 
-* rapt-show-versions neither requires nor makes use of the apt-show-versions
+## rapt-show-versions...
+
+* neither requires nor makes use of the apt-show-versions
   cache. The -i/--initialize option is neither required nor supported.
-
-* rapt-show-versions does not support the -p/--package option, as this was never
+* does not support the -p/--package option, as this was never
   necessary to use. Simply provide a package specification as an argument.
-
-* rapt-show-versions does not support the -r/--regex nor -R/--regex-all options.
+* does not support the -r/--regex nor -R/--regex-all options.
   Simply provide a regular expression to use it for search.
-
-* rapt-show-versions does not support the -v/--verbose option, as it does not
-  appear to work in apt-show-versions anyway.
+* does not support the -v/--verbose option. It does not appear to work in
+  apt-show-versions anyway.
 
 These options might be added for backwards compatibility, but there are no
 plans to do so currently.
@@ -104,6 +104,10 @@ present.
 
 
 # Similar projects
+
+## APT2
+* http://wiki.debian.org/Apt2
+* Started work years ago, doesn't appear to be going anywhere
 
 ## libept
 * http://web.mornfall.net/libept.html
