@@ -20,7 +20,7 @@ AX_PTHREAD
 
 PKG_PROG_PKG_CONFIG
 
-PKG_CHECK_MODULES(LIBBLOSSOM, libblossom >= 1.2.2, [have_libblossom=yes])
+PKG_CHECK_MODULES(LIBBLOSSOM, libblossom >= 1.3.0, [have_libblossom=yes])
 CFLAGS+=" $LIBBLOSSOM_LIBS"
 LIBS+=" $LIBBLOSSOM_LIBS"
 
