@@ -75,7 +75,7 @@ Run ./configure && make && make install, seasoned to taste.
 These options might be added for backwards compatibility, but there are no
 plans to do so currently.
 
-## Differences between rapt-file(1) and apt-file(1)
+## Differences between raptorial-file(1) and apt-file(1)
 
 * neither requires nor makes use of the apt-file(1) cache.
   The -c/--cache option is neither required nor supported.
