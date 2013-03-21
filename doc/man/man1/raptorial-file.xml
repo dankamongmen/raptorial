@@ -48,6 +48,14 @@
 			<year>2013</year>
 			<holder>&dhusername;</holder>
 		</copyright>
+		<authorgroup>
+			<author>
+				<firstname>Sebastian</firstname>
+				<surname>Gross</surname>
+				<contrib>Original apt-file(1).</contrib>
+				<address><email>sjg@debian.org</email></address>
+			</author>
+		</authorgroup>
 	</refentryinfo>
 	<refmeta>
 		<refentrytitle>&dhucpackage;</refentrytitle>

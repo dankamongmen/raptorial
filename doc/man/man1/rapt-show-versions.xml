@@ -43,6 +43,12 @@
 					<email>&dhemail;</email>
 				</address>
 			</author>
+		</authorgroup>
+		<copyright>
+			<year>2013</year>
+			<holder>&dhusername;</holder>
+		</copyright>
+		<authorgroup>
 			<author>
 				<firstname>Christoph</firstname>
 				<surname>Martin</surname>
@@ -50,10 +56,6 @@
 				<address><email>martin@uni-mainz.de</email></address>
 			</author>
 		</authorgroup>
-		<copyright>
-			<year>2013</year>
-			<holder>&dhusername;</holder>
-		</copyright>
 	</refentryinfo>
 	<refmeta>
 		<refentrytitle>&dhucpackage;</refentrytitle>
