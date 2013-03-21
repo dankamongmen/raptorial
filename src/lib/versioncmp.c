@@ -42,6 +42,8 @@ int debcmp(const char *d1,const char *d2){
 		if(r){
 			return r;
 		}
+		++d1;
+		++d2;
 	}
 	return 0;
 }
