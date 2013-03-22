@@ -63,14 +63,12 @@ lex_packages_mem(const void *,size_t,int *,struct dfa **);
 PUBLIC struct pkgcache *
 lex_packages_dir(const char *,int *,struct dfa *);
 
-// Returns a new contents cache object after lexing any compressed content
-// tables found in the specified directory. The tables will be processed in
-// parallel.
+// Walks all contents cachefiles. The tables will be processed in parallel.
 //
 // If dfa is non-NULL, it will be used to filter our list. This function is
 // not capable of building a DFA.
-PUBLIC struct pkgcache *
-lex_packages_dir(const char *,int *,struct dfa *);
+PUBLIC int
+lex_contents_dir(const char *,int *,struct dfa *);
 
 // Wrap a package list in a single-index cache object. Returns NULL if passed
 // NULL, without modifying err, allowing use in functional composition. Frees
@@ -127,6 +125,9 @@ raptorial_def_lists_dir(void);
 
 PUBLIC const char *
 raptorial_def_status_file(void);
+
+PUBLIC const char *
+raptorial_def_content_dir(void);
 
 typedef struct dfactx {
 	const struct dfa *dfa;

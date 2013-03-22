@@ -16,7 +16,7 @@ improved, and that a saner interface to APT actions will be presented to
 developers. An emphasis will be put on making effective use of parallel
 resources, whether they be disks or CPUs. It makes no use of on-disk cached
 representations of its primary datastore: all data is present exactly one time
-in the filesystem.
+in the filesystem. It requires no tmpfiles, and indeed never writes to disk.
 
 Components include, or will include:
 

@@ -156,6 +156,8 @@ void free_dfa(dfa *space){
 	}
 }
 
+// FIXME now that apt-file is matching against blocks of text, we need follow
+// the sigma function on the edge-not-found case
 void *match_dfactx_char(dfactx *dctx,int s){
 	unsigned pos;
 

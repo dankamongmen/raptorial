@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <paths.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include "config.h"
@@ -29,8 +30,9 @@ int main(int argc,char **argv){
                 { "help", 0, NULL, 'h' },
                 { NULL, 0, NULL, 0 }
         };
+	const char *cdir = NULL;
 	struct dfa *dfa;
-	int c;
+	int c,err;
 
 	while((c = getopt_long(argc,argv,"h",longopts,&optind)) != -1){
 		switch(c){
@@ -43,6 +45,7 @@ int main(int argc,char **argv){
 			break;
 		}
 	}
+	cdir = raptorial_def_content_dir();
 	if(argv[optind] == NULL){
 		fprintf(stderr,"Didn't provide any search terms!\n");
 		usage(argv[0],EXIT_FAILURE);
@@ -50,7 +53,6 @@ int main(int argc,char **argv){
 	dfa = NULL;
 	while(*argv){
                 struct pkgobj *po;
-		int err;
 
                 if((po = create_stub_package(*argv,&err)) == NULL){
                         fprintf(stderr,"Couldn't create stub package %s (%s?)\n",
@@ -63,7 +65,9 @@ int main(int argc,char **argv){
                 }
                 ++argv;
 	}
-	// FIXME load contents files
-
+	if(lex_contents_dir(cdir,&err,dfa)){
+		fprintf(stderr,"Error matching contents files (%s?)\n",strerror(err));
+		return EXIT_FAILURE;
+	}
 	return EXIT_SUCCESS;
 }

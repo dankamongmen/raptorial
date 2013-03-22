@@ -1,6 +1,8 @@
 #include <aac.h>
 #include <zlib.h>
+#include <ctype.h>
 #include <errno.h>
+#include <stdio.h>
 #include <fcntl.h>
 #include <dirent.h>
 #include <string.h>
@@ -22,29 +24,112 @@ free1p(void *opaque __attribute__ ((unused)),void *addr){
 	free(addr);
 }
 
+enum {
+	STATE_HOL,
+	STATE_MATCHING,
+	STATE_INTER,
+	STATE_VAL,
+};
+
+static int
+lex_content(const void *vmap,size_t len,struct dfa *dfa){
+	const char *map = vmap;
+	size_t off = 0;
+	dfactx dctx;
+	int s;
+
+	s = STATE_HOL; // Ensure we're always starting on a fresh line! FIXME
+	while(off < len){
+		switch(s){
+		case STATE_HOL:
+			if(isspace(map[off])){
+				break;
+			}
+			init_dfactx(&dctx,dfa);
+			s = STATE_MATCHING;
+			// intentional fallthrough to do first match
+		case STATE_MATCHING:
+			if(isspace(map[off])){
+				s = (map[off] == '\n') ? STATE_HOL : STATE_INTER;
+			}else{
+				const struct pkgobj *po = match_dfactx_char(&dctx,*map);
+				if(po){ // FIXME
+					printf("MATCH %s\n",pkgobj_name(po));
+				}
+			}
+			break;
+		case STATE_INTER:
+			if(isspace(map[off])){
+				if(map[off] == '\n'){
+					s = STATE_HOL;
+				}
+			}else{
+				s = STATE_VAL;
+			}
+			break;
+		case STATE_VAL:
+			if(map[off] == '\n'){
+				s = STATE_HOL;
+			}
+			break;
+		}
+		++off;
+	}
+	assert(map);
+	assert(len);
+	assert(dfa);
+	return 0;
+}
+
 static int
 lex_content_map(void *map,off_t inlen,struct dfa *dfa){
+	size_t scratchsize;
 	z_stream zstr;
+	void *scratch;
 	int z;
 
 	if(inlen <= 0){
 		return -1;
 	}
+	scratchsize = inlen * 2;
+	if((scratch = malloc(scratchsize)) == NULL){
+		return -1;
+	}
+	assert(map);
+	memset(&zstr,0,sizeof(zstr));
+	zstr.next_out = scratch;
+	zstr.avail_out = scratchsize;
 	zstr.next_in = map;
 	zstr.avail_in = inlen;
 	zstr.zalloc = alloc2p;
 	zstr.zfree = free1p;
 	zstr.opaque = NULL;
-	if(inflateInit(&zstr) != Z_OK){
+	if(inflateInit2(&zstr,47) != Z_OK){
+		free(scratch);
 		return -1;
 	}
+	/*gz_header gzh;
+	  if(inflateGetHeader(&zstr,&gzh) != Z_OK){
+		fprintf(stderr,"Not a gzip file?\n");
+		inflateEnd(&zstr);
+		return -1;
+	}*/
 	assert(dfa);
-	while((z = inflate(&zstr,Z_FINISH)) == Z_STREAM_END){
-		//dfactxdctx;
+	while((z = inflate(&zstr,0)) != Z_STREAM_END){
 		if(z != Z_OK){
+			inflateEnd(&zstr);
+			free(scratch);
 			return -1;
 		}
+		if(lex_content(scratch,scratchsize - zstr.avail_out,dfa)){
+			inflateEnd(&zstr);
+			free(scratch);
+			return -1;
+		}
+		zstr.avail_out = scratchsize;
+		zstr.next_out = scratch;
 	}
+	free(scratch);
 	if(inflateEnd(&zstr) != Z_OK){
 		return -1;
 	}
@@ -94,6 +179,7 @@ lex_packages_file_internal(const char *path,struct dfa *dfa){
 		}
 	}
 	if(lex_content_map(map,st.st_size,dfa)){
+		close(fd);
 		return -1;
 	}
 	close(fd);
