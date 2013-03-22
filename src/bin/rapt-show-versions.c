@@ -164,19 +164,11 @@ int main(int argc,char **argv){
 	argv += optind;
 	while(*argv){
 		struct pkgobj *po;
-		dfactx dctx;
 
 		if((po = create_stub_package(*argv,&err)) == NULL){
 			fprintf(stderr,"Couldn't create stub package %s (%s?)\n",
 				*argv,strerror(err));
 			return EXIT_FAILURE;
-		}
-		if(dfa){
-			init_dfactx(&dctx,dfa);
-			if(match_dfactx_string(&dctx,*argv)){
-				fprintf(stderr,"Provided %s twice, exiting\n",*argv);
-				return EXIT_FAILURE;
-			}
 		}
 		if(augment_dfa(&dfa,*argv,po)){
 			fprintf(stderr,"Failure adding %s to DFA\n",*argv);
