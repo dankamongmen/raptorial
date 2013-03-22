@@ -1,4 +1,4 @@
-#include <sdfa.h>
+#include <aac.h>
 #include <zlib.h>
 #include <ctype.h>
 #include <errno.h>
@@ -27,7 +27,6 @@ free1p(void *opaque __attribute__ ((unused)),void *addr){
 enum {
 	STATE_HOL,
 	STATE_MATCHING,
-	STATE_MATCHING_MATCHED,
 	STATE_INTER,
 	STATE_INTER_MATCHED,
 	STATE_VAL,
@@ -35,14 +34,14 @@ enum {
 };
 
 static int
-lex_content(void *vmap,size_t len,struct sdfa *dfa){
-	char *map = vmap,*hol,*val,*inter;
+lex_content(void *vmap,size_t len,struct dfa *dfa){
+	char *map = vmap,*hol,*val;
 	size_t off = 0;
-	sdfactx dctx;
+	dfactx dctx;
 	int s;
 
 	s = STATE_HOL; // Ensure we're always starting on a fresh line! FIXME
-	hol = inter = val = NULL;
+	hol = val = NULL;
 	while(off < len){
 		switch(s){
 		case STATE_HOL:
@@ -50,20 +49,21 @@ lex_content(void *vmap,size_t len,struct sdfa *dfa){
 				break;
 			}
 			hol = map + off;
-			init_sdfactx(&dctx,dfa);
+			init_dfactx(&dctx,dfa);
 			s = STATE_MATCHING;
 			// intentional fallthrough to do first match
-		case STATE_MATCHING: case STATE_MATCHING_MATCHED:
+		case STATE_MATCHING:
 			if(isspace(map[off])){
-				s = (map[off] == '\n') ? STATE_HOL :
-					s == STATE_MATCHING_MATCHED ?
-						STATE_INTER_MATCHED : STATE_INTER;
-				inter = map + off;
-				map[off] = '\0';
-			}else{
-				const struct pkgobj *po = match_sdfactx_char(&dctx,map[off]);
-				if(po){ // FIXME
-					s = STATE_MATCHING_MATCHED;
+				if(map[off] != '\n'){
+					if(match_dfactx_against_nstring(&dctx,hol,map + off - hol)){
+						s = STATE_INTER_MATCHED;
+						map[off] = '\0';
+					}else{
+						s = STATE_INTER;
+					}
+				}else{
+					//s = STATE_HOL;
+					s = STATE_VAL_MATCHED;
 				}
 			}
 			break;
@@ -96,7 +96,7 @@ lex_content(void *vmap,size_t len,struct sdfa *dfa){
 }
 
 static int
-lex_content_map(void *map,off_t inlen,struct sdfa *dfa){
+lex_content_map(void *map,off_t inlen,struct dfa *dfa){
 	size_t scratchsize;
 	z_stream zstr;
 	void *scratch;
@@ -155,11 +155,11 @@ lex_content_map(void *map,off_t inlen,struct sdfa *dfa){
 
 struct dirparse {
 	DIR *dir;
-	struct sdfa *dfa;
+	struct dfa *dfa;
 };
 
 static int
-lex_packages_file_internal(const char *path,struct sdfa *dfa){
+lex_packages_file_internal(const char *path,struct dfa *dfa){
 	size_t mlen,len;
 	struct stat st;
 	void *map;
@@ -232,7 +232,7 @@ lex_dir(void *vdp){
 
 // len is the true length, less than or equal to the mapped length.
 static int
-lex_listdir(DIR *dir,int *err,struct sdfa *dfa){
+lex_listdir(DIR *dir,int *err,struct dfa *dfa){
 	struct dirparse dp = {
 		.dir = dir,
 		.dfa = dfa,
@@ -263,7 +263,7 @@ lex_listdir(DIR *dir,int *err,struct sdfa *dfa){
 // If dfa is non-NULL, it will be used to filter our list. This function is
 // not capable of building a DFA.
 PUBLIC int
-lex_contents_dir(const char *dir,int *err,struct sdfa *dfa){
+lex_contents_dir(const char *dir,int *err,struct dfa *dfa){
 	DIR *d;
 
 	if((d = opendir(dir)) == NULL){
