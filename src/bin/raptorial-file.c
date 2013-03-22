@@ -16,6 +16,13 @@ usage(const char *name,int retcode){
 
 int main(int argc,char **argv){
 	const struct option longopts[] = {
+		{ "architecture", 0, NULL, 'a' },
+		{ "cache", 0, NULL, 'c' },
+		{ "cdrom-mount", 0, NULL, 'd' },
+		{ "from-deb", 0, NULL, 'D' },
+		{ "from-file", 0, NULL, 'f' },
+		{ "", 0, NULL, 'f' },
+
                 { "help", 0, NULL, 'h' },
                 { NULL, 0, NULL, 0 }
         };
