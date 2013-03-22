@@ -36,6 +36,17 @@ int main(int argc,char **argv){
 
 	while((c = getopt_long(argc,argv,"h",longopts,&optind)) != -1){
 		switch(c){
+		case 'a':
+		case 'c':
+		case 'd':
+		case 'D':
+		case 'f':
+		case 'N':
+		case 's':
+		case 'v':
+			fprintf(stderr,"Sorry, '%c' is not yet implemented\n",c);
+			exit(EXIT_FAILURE);
+			break;
 		case 'h':
 			usage(argv[0],EXIT_SUCCESS);
 			break;
