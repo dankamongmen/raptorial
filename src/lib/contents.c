@@ -126,7 +126,7 @@ lex_content_map(void *map,off_t inlen,struct dfa *dfa){
 		inflateEnd(&zstr);
 		return -1;
 	}*/
-	while((z = inflate(&zstr,Z_SYNC_FLUSH)) != Z_STREAM_END){
+	while((z = inflate(&zstr,Z_NO_FLUSH)) != Z_STREAM_END){
 		if(z != Z_OK){
 			inflateEnd(&zstr);
 			free(scratch);
@@ -140,10 +140,15 @@ lex_content_map(void *map,off_t inlen,struct dfa *dfa){
 		zstr.avail_out = scratchsize;
 		zstr.next_out = scratch;
 	}
-	free(scratch);
 	if(inflateEnd(&zstr) != Z_OK){
+		free(scratch);
 		return -1;
 	}
+	if(lex_content(scratch,scratchsize - zstr.avail_out,dfa)){
+		free(scratch);
+		return -1;
+	}
+	free(scratch);
 	return 0;
 }
 
