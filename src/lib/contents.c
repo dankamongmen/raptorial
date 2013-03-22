@@ -1,17 +1,63 @@
 #include <aac.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <dirent.h>
 #include <string.h>
 #include <assert.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <blossom.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 
 struct dirparse {
 	DIR *dir;
 	struct dfa *dfa;
 };
+
+static int
+lex_packages_file_internal(const char *path,struct dfa *dfa){
+	const void *map;
+	size_t mlen,len;
+	struct stat st;
+	int fd,pg;
+
+	if(path == NULL){
+		return -1;
+	}
+	// Probably ought get the largest page size; this will be the smallest
+	// on all platforms of which I'm aware. FIXME
+	if((pg = sysconf(_SC_PAGE_SIZE)) <= 0){
+		return -1;
+	}
+	if((fd = open(path,O_CLOEXEC)) < 0){
+		return -1;
+	}
+	if(fstat(fd,&st)){
+		close(fd);
+		return -1;
+	}
+	mlen = len = st.st_size;
+	if(mlen % pg != mlen / pg){
+		mlen = (mlen / pg) * pg + pg;
+	}
+	if((map = mmap(NULL,mlen,PROT_READ,MAP_SHARED|MAP_HUGETLB|MAP_POPULATE,fd,0)) == MAP_FAILED){
+		if(errno != EINVAL){
+			close(fd);
+			return -1;
+		}
+		// Try again without MAP_HUGETLB
+		if((map = mmap(NULL,mlen,PROT_READ,MAP_SHARED|MAP_POPULATE,fd,0)) == MAP_FAILED){
+			close(fd);
+			return -1;
+		}
+	}
+	// FIXME lex the map against dfa
+	assert(dfa);
+	close(fd);
+	return 0;
+}
 
 static void *
 lex_dir(void *vdp){
@@ -33,9 +79,10 @@ lex_dir(void *vdp){
 		if(strcmp(ext,".gz")){
 			continue;
 		}
-		// FIXME decompress and read, matching against dfa
+		if(lex_packages_file_internal(dent.d_name,dp->dfa)){
+			return NULL;
+		}
 	}
-	// *err = errno;
 	return NULL;
 }
 

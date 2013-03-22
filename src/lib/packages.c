@@ -691,7 +691,6 @@ lex_dir(void *vdp){
 			}
 		}
 	}
-	// *err = errno;
 	return NULL;
 }
 
