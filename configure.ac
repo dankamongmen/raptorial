@@ -18,6 +18,8 @@ AM_PROG_CC_C_O
 
 AX_PTHREAD
 
+AX_CHECK_ZLIB
+
 PKG_PROG_PKG_CONFIG
 
 PKG_CHECK_MODULES(LIBBLOSSOM, libblossom >= 1.3.0, [have_libblossom=yes])
