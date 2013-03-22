@@ -63,6 +63,9 @@ struct pkgparse {
 
 static void
 free_package(pkgobj *po){
+	if(po->haslock){
+		assert(pthread_mutex_destroy(&po->lock) == 0);
+	}
 	free(po->version);
 	free(po->name);
 	free(po);
@@ -100,7 +103,6 @@ create_package(const char *name,size_t namelen,const char *ver,size_t verlen,
 		if(fill_package(po,ver,verlen,pl)){
 			free(po->name);
 			free(po);
-			return NULL;
 		}
 	}
 	return po;
@@ -869,9 +871,16 @@ pkgcache_find_newest(const pkgobj *mpo){
 
 struct pkgobj *create_stub_package(const char *name,int *err){
 	pkgobj *po;
+	int r;
 
 	if((po = create_package(name,strlen(name),NULL,0,NULL)) == NULL){
 		*err = errno;
+	}else if( (r = pthread_mutex_init(&po->lock,NULL)) ){
+		*err = r;
+		free(po);
+		po = NULL;
+	}else{
+		po->haslock = 1;
 	}
 	return po;
 }

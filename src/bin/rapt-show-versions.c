@@ -170,6 +170,7 @@ int main(int argc,char **argv){
 				*argv,strerror(err));
 			return EXIT_FAILURE;
 		}
+		printf("augment %p\n",po);
 		if(augment_dfa(&dfa,*argv,po)){
 			fprintf(stderr,"Failure adding %s to DFA\n",*argv);
 			return EXIT_FAILURE;
