@@ -28,7 +28,7 @@ noinst_HEADERS=src/lib/aac.h
 
 lib_LTLIBRARIES = libraptorial.la
 libraptorial_la_SOURCES = src/lib/packages.c src/lib/paths.c src/lib/aac.c \
-    	src/lib/versioncmp.c
+	src/lib/versioncmp.c src/lib/contents.c
 
 raptorial_tester_SOURCES = src/tester/main.c
 raptorial_tester_LDADD = libraptorial.la

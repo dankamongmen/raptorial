@@ -59,7 +59,16 @@ lex_packages_mem(const void *,size_t,int *,struct dfa **);
 // the specified directory. The lists will be processed in parallel.
 //
 // If dfa is non-NULL, it will be used to filter our list. This function is
-// not capable of building a DFA, since it lexes file chunks in parallel.
+// not capable of building a DFA.
+PUBLIC struct pkgcache *
+lex_packages_dir(const char *,int *,struct dfa *);
+
+// Returns a new contents cache object after lexing any compressed content
+// tables found in the specified directory. The tables will be processed in
+// parallel.
+//
+// If dfa is non-NULL, it will be used to filter our list. This function is
+// not capable of building a DFA.
 PUBLIC struct pkgcache *
 lex_packages_dir(const char *,int *,struct dfa *);
 
