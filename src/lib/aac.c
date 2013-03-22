@@ -55,13 +55,12 @@ edge_search(const dfavtx *node,int s){
 	unsigned pos;
 
 	min = 0;
-	switch(node->setsize){
-		case 0: return 0;
-		case 1: return node->set[0].label >= s ? 0 : 1;
-		case 2: return node->set[0].label >= s ? 0 :
-				node->set[1].label >= s ? 1 : 2;
-	}
 	max = node->setsize;
+	switch(max){
+		case 2: if(node->set[1].label >= s) max = 1;
+		case 1: if(node->set[0].label >= s) max = 0;
+		case 0: return max;
+	}
 	pos = max / 2;
 	do{
 		if(s < node->set[pos].label){
