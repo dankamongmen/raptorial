@@ -59,9 +59,18 @@ this for a release tarball. This will require the GNU Autotools.
 
 Run ./configure && make && make install, seasoned to taste.
 
-# Differences from standard tools
+# UI-visible divergences from preexisting APT tools
 
-## Differences between rapt-show-versions(1) and apt-show-versions(1)
+## Regular expressions / "pattern searches"
+
+* The variations of regular expression admitted by the different tools are
+  collapsed to a single, reduced definition. A search pattern is composed of:
+** Legal characters for the range of the search (usually alphanums + '_'),
+** Kleene closure ('*'),
+** Union ('|'),
+** Nested pairs of parentheses ('(', ')')
+
+## rapt-show-versions(1) vs apt-show-versions(1)
 
 * neither requires nor makes use of the apt-show-versions(1) cache.
   The -i/--initialize option is neither required nor supported.
@@ -75,14 +84,20 @@ Run ./configure && make && make install, seasoned to taste.
 These options might be added for backwards compatibility, but there are no
 plans to do so currently.
 
-## Differences between raptorial-file(1) and apt-file(1)
+## raptorial-file(1) vs apt-file(1)
 
 * neither requires nor makes use of the apt-file(1) cache.
   The -c/--cache option is neither required nor supported.
+* does not support the -x/--regexp options; they were syntactic sugar. Simply
+  provide a regular expression to use it for search.
 * $HOME/.cache/apt-file is no longer checked by default for non-root users.
   simply use -c explicitly to use a directory other than the systemwide
   default /var/cache/apt/apt-file. this eliminates a class of pathological
   problems (i.e., partially broken user cache with working system cache).
+* -F/--fixed-string is not supported; it was only necessary due to (very
+  questionable) implict Kleene closures at the beginning and ending of a search
+  term, but only searches specified with -r. If you want this behavior,
+  explicitly enclose the search term in Kleene closures ('*' characters).
 
 # Design
 
@@ -105,6 +120,8 @@ lists within a directory are lexed in parallel, and the lists themselves will
 ideally also be chunked and lexed in parallel (they're not right now,
 because libblossom doesn't allow hierarchal blossoms. See [bug #698][b698]).
 
+[b698]: https://www.sprezzatech.com/bugs/show_bug.cgi?id=698
+
 ## Filtered list lexing
 
 Whenever we lex a list (status or package), we can accept a DFA to walk whilst
@@ -113,8 +130,19 @@ DFA. This not only saves us allocations and copies, but more importantly it
 reduces the amount to search later, since uninteresting elements aren't
 present.
 
+## Pattern searches
 
-[b698]: https://www.sprezzatech.com/bugs/show_bug.cgi?id=698
+Recall that regular languages are equivalent to discrete finite automata.
+
+We admit only the true regular operations (concatenation, alternation, and
+Kleene closure). This is strictly less powerful than the PCRE support
+approximated more or less by the preexisting tools, but it allows us to
+implement regexes purely as edges in our native DFAs. Thankfully, while
+backreferences cannot be built out of these regular operations, it seems
+unlikely that backrefs would ever be useful in these programs' contexts. By
+rejecting syntactic sugar like character classes, atrivial Kleene ('+'),
+numeric ranges and match-all-glyphs ('.'), we use only characters which cannot
+show up in any of our search ranges, and thus needn't introduce escaping.
 
 
 # Similar projects
