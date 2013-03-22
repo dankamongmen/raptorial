@@ -31,7 +31,7 @@ int main(int argc,char **argv){
                 { NULL, 0, NULL, 0 }
         };
 	const char *cdir = NULL;
-	struct dfa *dfa;
+	struct sdfa *dfa;
 	int c,err;
 
 	while((c = getopt_long(argc,argv,"h",longopts,&optind)) != -1){
@@ -70,8 +70,8 @@ int main(int argc,char **argv){
                                 *argv,strerror(err));
                         return EXIT_FAILURE;
                 }
-                if(augment_dfa(&dfa,*argv,po)){
-                        fprintf(stderr,"Failure adding %s to DFA\n",*argv);
+                if(augment_sdfa(&dfa,*argv,po)){
+                        fprintf(stderr,"Failure adding %s to sDFA\n",*argv);
                         return EXIT_FAILURE;
                 }
                 ++argv;

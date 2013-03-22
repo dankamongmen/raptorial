@@ -30,6 +30,7 @@ extern "C" {
 #include <stddef.h>
 
 struct dfa;
+struct sdfa;
 struct dfactx;
 struct pkgobj;
 struct pkglist;
@@ -68,7 +69,7 @@ lex_packages_dir(const char *,int *,struct dfa *);
 // If dfa is non-NULL, it will be used to filter our list. This function is
 // not capable of building a DFA.
 PUBLIC int
-lex_contents_dir(const char *,int *,struct dfa *);
+lex_contents_dir(const char *,int *,struct sdfa *);
 
 // Wrap a package list in a single-index cache object. Returns NULL if passed
 // NULL, without modifying err, allowing use in functional composition. Frees
@@ -134,18 +135,31 @@ typedef struct dfactx {
 	unsigned cur;
 } dfactx;
 
+typedef struct sdfactx {
+	const struct sdfa *dfa;
+	unsigned cur;
+} sdfactx;
+
 dfactx *create_dfactx(const struct dfa *);
+sdfactx *create_sdfactx(const struct sdfa *);
 
 PUBLIC struct pkgobj *
 create_stub_package(const char *,int *);
 
 void init_dfactx(dfactx *,const struct dfa *);
+void init_sdfactx(sdfactx *,const struct sdfa *);
 
 PUBLIC int
 augment_dfa(struct dfa **,const char *,void *);
 
 PUBLIC void
 free_dfa(struct dfa *);
+
+PUBLIC int
+augment_sdfa(struct sdfa **,const char *,void *);
+
+PUBLIC void
+free_sdfa(struct sdfa *);
 
 PUBLIC void *
 match_dfactx_string(struct dfactx *,const char *);

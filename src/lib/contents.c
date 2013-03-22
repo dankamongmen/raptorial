@@ -1,4 +1,4 @@
-#include <aac.h>
+#include <sdfa.h>
 #include <zlib.h>
 #include <ctype.h>
 #include <errno.h>
@@ -35,10 +35,10 @@ enum {
 };
 
 static int
-lex_content(void *vmap,size_t len,struct dfa *dfa){
+lex_content(void *vmap,size_t len,struct sdfa *dfa){
 	char *map = vmap,*hol,*val,*inter;
 	size_t off = 0;
-	dfactx dctx;
+	sdfactx dctx;
 	int s;
 
 	s = STATE_HOL; // Ensure we're always starting on a fresh line! FIXME
@@ -50,7 +50,7 @@ lex_content(void *vmap,size_t len,struct dfa *dfa){
 				break;
 			}
 			hol = map + off;
-			init_dfactx(&dctx,dfa);
+			init_sdfactx(&dctx,dfa);
 			s = STATE_MATCHING;
 			// intentional fallthrough to do first match
 		case STATE_MATCHING: case STATE_MATCHING_MATCHED:
@@ -61,7 +61,7 @@ lex_content(void *vmap,size_t len,struct dfa *dfa){
 				inter = map + off;
 				map[off] = '\0';
 			}else{
-				const struct pkgobj *po = match_dfactx_char(&dctx,map[off]);
+				const struct pkgobj *po = match_sdfactx_char(&dctx,map[off]);
 				if(po){ // FIXME
 					s = STATE_MATCHING_MATCHED;
 				}
@@ -96,7 +96,7 @@ lex_content(void *vmap,size_t len,struct dfa *dfa){
 }
 
 static int
-lex_content_map(void *map,off_t inlen,struct dfa *dfa){
+lex_content_map(void *map,off_t inlen,struct sdfa *dfa){
 	size_t scratchsize;
 	z_stream zstr;
 	void *scratch;
@@ -155,11 +155,11 @@ lex_content_map(void *map,off_t inlen,struct dfa *dfa){
 
 struct dirparse {
 	DIR *dir;
-	struct dfa *dfa;
+	struct sdfa *dfa;
 };
 
 static int
-lex_packages_file_internal(const char *path,struct dfa *dfa){
+lex_packages_file_internal(const char *path,struct sdfa *dfa){
 	size_t mlen,len;
 	struct stat st;
 	void *map;
@@ -232,7 +232,7 @@ lex_dir(void *vdp){
 
 // len is the true length, less than or equal to the mapped length.
 static int
-lex_listdir(DIR *dir,int *err,struct dfa *dfa){
+lex_listdir(DIR *dir,int *err,struct sdfa *dfa){
 	struct dirparse dp = {
 		.dir = dir,
 		.dfa = dfa,
@@ -263,7 +263,7 @@ lex_listdir(DIR *dir,int *err,struct dfa *dfa){
 // If dfa is non-NULL, it will be used to filter our list. This function is
 // not capable of building a DFA.
 PUBLIC int
-lex_contents_dir(const char *dir,int *err,struct dfa *dfa){
+lex_contents_dir(const char *dir,int *err,struct sdfa *dfa){
 	DIR *d;
 
 	if((d = opendir(dir)) == NULL){
