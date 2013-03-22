@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <string.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <blossom.h>
@@ -126,25 +127,25 @@ lex_content_map(void *map,off_t inlen,struct dfa *dfa){
 		inflateEnd(&zstr);
 		return -1;
 	}*/
-	while((z = inflate(&zstr,Z_NO_FLUSH)) != Z_STREAM_END){
-		if(z != Z_OK){
+	do{
+		z = inflate(&zstr,Z_NO_FLUSH);
+		if(z != Z_OK && z != Z_STREAM_END){
 			inflateEnd(&zstr);
 			free(scratch);
 			return -1;
 		}
-		if(lex_content(scratch,scratchsize - zstr.avail_out,dfa)){
-			inflateEnd(&zstr);
-			free(scratch);
-			return -1;
+		if(scratchsize - zstr.avail_out){
+			fprintf(stderr,"lexing %ju\n",(uintmax_t)(scratchsize - zstr.avail_out));
+			if(lex_content(scratch,scratchsize - zstr.avail_out,dfa)){
+				inflateEnd(&zstr);
+				free(scratch);
+				return -1;
+			}
 		}
 		zstr.avail_out = scratchsize;
 		zstr.next_out = scratch;
-	}
+	}while(z == Z_OK);
 	if(inflateEnd(&zstr) != Z_OK){
-		free(scratch);
-		return -1;
-	}
-	if(lex_content(scratch,scratchsize - zstr.avail_out,dfa)){
 		free(scratch);
 		return -1;
 	}
