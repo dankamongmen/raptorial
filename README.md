@@ -68,7 +68,9 @@ Run ./configure && make && make install, seasoned to taste.
 ** Legal characters for the range of the search (usually alphanums + '_'),
 ** Kleene closure ('*'),
 ** Union ('|'),
-** Nested pairs of parentheses ('(', ')')
+** Left bound ('^')
+** Right bound ('$')
+** Nested pairs of parentheses ('(' + ')')
 
 ## rapt-show-versions(1) vs apt-show-versions(1)
 
@@ -94,10 +96,10 @@ plans to do so currently.
   simply use -c explicitly to use a directory other than the systemwide
   default /var/cache/apt/apt-file. this eliminates a class of pathological
   problems (i.e., partially broken user cache with working system cache).
-* -F/--fixed-string is not supported; it was only necessary due to (very
-  questionable) implict Kleene closures at the beginning and ending of a search
-  term, but only searches specified with -r. If you want this behavior,
-  explicitly enclose the search term in Kleene closures ('*' characters).
+* -F/--fixed-string is not supported. it only applied to -r/--regex-style
+  searches in the old apt-file(1). raptorial-file(1) always matches the content
+  text against the search terms for any presence. to require a full match,
+  use '^term$'.
 
 # Design
 

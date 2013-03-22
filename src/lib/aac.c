@@ -164,6 +164,7 @@ void *match_dfactx_char(dfactx *dctx,int s){
 	pos = edge_search(&dctx->dfa->vtxarray[dctx->cur],s);
 	if(pos >= dctx->dfa->vtxarray[dctx->cur].setsize ||
 			dctx->dfa->vtxarray[dctx->cur].set[pos].label != s){
+		init_dfactx(dctx,dctx->dfa);
 		return NULL;
 	}
 	return dctx->dfa->vtxarray[

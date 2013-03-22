@@ -6,7 +6,6 @@
 #include <fcntl.h>
 #include <dirent.h>
 #include <string.h>
-#include <assert.h>
 #include <unistd.h>
 #include <pthread.h>
 #include <blossom.h>
@@ -87,9 +86,6 @@ lex_content(const void *vmap,size_t len,struct dfa *dfa){
 		}
 		++off;
 	}
-	assert(map);
-	assert(len);
-	assert(dfa);
 	return 0;
 }
 
@@ -107,7 +103,6 @@ lex_content_map(void *map,off_t inlen,struct dfa *dfa){
 	if((scratch = malloc(scratchsize)) == NULL){
 		return -1;
 	}
-	assert(map);
 	memset(&zstr,0,sizeof(zstr));
 	zstr.next_out = scratch;
 	zstr.avail_out = scratchsize;
@@ -126,8 +121,7 @@ lex_content_map(void *map,off_t inlen,struct dfa *dfa){
 		inflateEnd(&zstr);
 		return -1;
 	}*/
-	assert(dfa);
-	while((z = inflate(&zstr,0)) != Z_STREAM_END){
+	while((z = inflate(&zstr,Z_BLOCK)) != Z_STREAM_END){
 		if(z != Z_OK){
 			inflateEnd(&zstr);
 			free(scratch);
