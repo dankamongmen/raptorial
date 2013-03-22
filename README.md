@@ -79,6 +79,10 @@ plans to do so currently.
 
 * neither requires nor makes use of the apt-file(1) cache.
   The -c/--cache option is neither required nor supported.
+* $HOME/.cache/apt-file is no longer checked by default for non-root users.
+  simply use -c explicitly to use a directory other than the systemwide
+  default /var/cache/apt/apt-file. this eliminates a class of pathological
+  problems (i.e., partially broken user cache with working system cache).
 
 # Design
 
