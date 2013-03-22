@@ -1,4 +1,5 @@
 #include <aac.h>
+#include <zlib.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <dirent.h>
@@ -11,6 +12,46 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+static void *
+alloc2p(void *opaque __attribute__ ((unused)),unsigned items,unsigned size){
+	return malloc(items * size);
+}
+
+static void
+free1p(void *opaque __attribute__ ((unused)),void *addr){
+	free(addr);
+}
+
+#include <stdio.h>
+static int
+lex_content_map(void *map,off_t inlen,struct dfa *dfa){
+	z_stream zstr;
+	int z;
+
+	zstr.next_in = map;
+	zstr.avail_in = inlen;
+	zstr.zalloc = alloc2p;
+	zstr.zfree = free1p;
+	zstr.opaque = NULL;
+	if(inflateInit(&zstr) != Z_OK){
+		fprintf(stderr,"Couldn't prepare for inflation\n");
+		return -1;
+	}
+	assert(dfa);
+	while((z = inflate(&zstr,Z_FINISH)) == Z_STREAM_END){
+		//dfactxdctx;
+		if(z != Z_OK){
+			fprintf(stderr,"Difficulties inflating (%d)\n",z);
+			return -1;
+		}
+	}
+	if(inflateEnd(&zstr) != Z_OK){
+		fprintf(stderr,"Couldn't finalize inflation\n");
+		return -1;
+	}
+	return 0;
+}
+
 struct dirparse {
 	DIR *dir;
 	struct dfa *dfa;
@@ -18,9 +59,9 @@ struct dirparse {
 
 static int
 lex_packages_file_internal(const char *path,struct dfa *dfa){
-	const void *map;
 	size_t mlen,len;
 	struct stat st;
+	void *map;
 	int fd,pg;
 
 	if(path == NULL){
@@ -53,8 +94,9 @@ lex_packages_file_internal(const char *path,struct dfa *dfa){
 			return -1;
 		}
 	}
-	// FIXME lex the map against dfa
-	assert(dfa);
+	if(lex_content_map(map,st.st_size,dfa)){
+		return -1;
+	}
 	close(fd);
 	return 0;
 }
