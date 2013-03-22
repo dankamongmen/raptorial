@@ -11,20 +11,15 @@
 struct dirparse {
 	DIR *dir;
 	struct dfa *dfa;
-	pthread_mutex_t lock;
 };
 
 static void *
 lex_dir(void *vdp){
 	struct dirparse *dp = vdp;
 	struct dirent dent,*pdent;
-	struct dfa **dfap;
 
-	dfap = dp->dfa ? &dp->dfa : NULL;
-	assert(dfap);
 	while(readdir_r(dp->dir,&dent,&pdent) == 0){
-		const char *suffixes[] = { "Sources", "Packages", NULL },**suffix;
-		const char *distdelim,*dist,*uridelim;
+		const char *ext;
 
 		if(pdent == NULL){
 			return dp;
@@ -32,33 +27,13 @@ lex_dir(void *vdp){
 		if(dent.d_type != DT_REG && dent.d_type != DT_LNK){
 			continue; // FIXME maybe don't skip DT_UNKNOWN?
 		}
-		if((uridelim = strchr(dent.d_name,'_')) == NULL){
+		if((ext = strrchr(dent.d_name,'.')) == NULL){
 			continue;
 		}
-		if((dist = strstr(uridelim,"_dists_")) == NULL){
+		if(strcmp(ext,".gz")){
 			continue;
 		}
-		dist += strlen("_dists_");
-		if((distdelim = strchr(dist,'_')) == NULL){
-			continue;
-		}
-		for(suffix = suffixes ; *suffix ; ++suffix){
-			if(strlen(dent.d_name) < strlen(*suffix)){
-				continue;
-			}
-			if(strcmp(dent.d_name + strlen(dent.d_name) - strlen(*suffix),*suffix) == 0){
-				/*
-				int err;
-
-				if((pl = lex_packages_file_internal(dent.d_name,&err,0,dfap)) == NULL){
-					return NULL;
-				}
-				*/
-				pthread_mutex_lock(&dp->lock);
-				pthread_mutex_unlock(&dp->lock);
-				break;
-			}
-		}
+		// FIXME decompress and read, matching against dfa
 	}
 	// *err = errno;
 	return NULL;
@@ -76,33 +51,21 @@ lex_listdir(DIR *dir,int *err,struct dfa *dfa){
 		.tids = 1,
 	};
 	blossom_state bs;
-	int r;
 
-	if( (r = pthread_mutex_init(&dp.lock,NULL)) ){
-		*err = r;
-		return -1;
-	}
 	if(blossom_per_pe(&bctl,&bs,NULL,lex_dir,&dp)){
 		*err = errno;
-		pthread_mutex_destroy(&dp.lock);
 		return -1;
 	}
 	if(blossom_join_all(&bs)){
 		*err = errno;
 		blossom_free_state(&bs);
-		pthread_mutex_destroy(&dp.lock);
 		return -1;
 	}
 	if(blossom_validate_joinrets(&bs)){
 		blossom_free_state(&bs);
-		pthread_mutex_destroy(&dp.lock);
 		return -1;
 	}
 	blossom_free_state(&bs);
-	if((r = pthread_mutex_destroy(&dp.lock))){
-		*err = r;
-		return -1;
-	}
 	return 0;
 }
 
