@@ -44,9 +44,10 @@ allow robust, safe, high-performance operation.
 Required components ought be detected or explicitly not detected by the
 Autotools configure script. You'll need:
 
-* Libblossom (https://github.com/dankamongmen/libblossom)
 * A C compiler
 * POSIX threads
+* Libblossom (https://github.com/dankamongmen/libblossom)
+* zlib (http://www.zlib.net/)
 * GNU Autotools (only if building from a git checkout)
 
 Raptorial ought build on any platform capable of running libblossom, which
