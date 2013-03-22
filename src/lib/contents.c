@@ -22,31 +22,30 @@ free1p(void *opaque __attribute__ ((unused)),void *addr){
 	free(addr);
 }
 
-#include <stdio.h>
 static int
 lex_content_map(void *map,off_t inlen,struct dfa *dfa){
 	z_stream zstr;
 	int z;
 
+	if(inlen <= 0){
+		return -1;
+	}
 	zstr.next_in = map;
 	zstr.avail_in = inlen;
 	zstr.zalloc = alloc2p;
 	zstr.zfree = free1p;
 	zstr.opaque = NULL;
 	if(inflateInit(&zstr) != Z_OK){
-		fprintf(stderr,"Couldn't prepare for inflation\n");
 		return -1;
 	}
 	assert(dfa);
 	while((z = inflate(&zstr,Z_FINISH)) == Z_STREAM_END){
 		//dfactxdctx;
 		if(z != Z_OK){
-			fprintf(stderr,"Difficulties inflating (%d)\n",z);
 			return -1;
 		}
 	}
 	if(inflateEnd(&zstr) != Z_OK){
-		fprintf(stderr,"Couldn't finalize inflation\n");
 		return -1;
 	}
 	return 0;
