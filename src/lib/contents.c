@@ -34,14 +34,14 @@ enum {
 };
 
 static int
-lex_content(const void *vmap,size_t len,struct dfa *dfa){
-	const char *map = vmap,*hol;
+lex_content(void *vmap,size_t len,struct dfa *dfa){
+	char *map = vmap,*hol,*val,*inter;
 	size_t off = 0;
 	dfactx dctx;
 	int s;
 
 	s = STATE_HOL; // Ensure we're always starting on a fresh line! FIXME
-	hol = NULL;
+	hol = inter = val = NULL;
 	while(off < len){
 		switch(s){
 		case STATE_HOL:
@@ -57,6 +57,8 @@ lex_content(const void *vmap,size_t len,struct dfa *dfa){
 				s = (map[off] == '\n') ? STATE_HOL :
 					s == STATE_MATCHING_MATCHED ?
 						STATE_INTER_MATCHED : STATE_INTER;
+				inter = map + off;
+				map[off] = '\0';
 			}else{
 				const struct pkgobj *po = match_dfactx_char(&dctx,map[off]);
 				if(po){ // FIXME
@@ -71,6 +73,7 @@ lex_content(const void *vmap,size_t len,struct dfa *dfa){
 				}
 			}else{
 				s = s == STATE_INTER ? STATE_VAL : STATE_VAL_MATCHED;
+				val = map + off;
 			}
 			break;
 		case STATE_VAL:
@@ -80,9 +83,11 @@ lex_content(const void *vmap,size_t len,struct dfa *dfa){
 			break;
 		case STATE_VAL_MATCHED:
 			if(map[off] == '\n'){
-				printf("%.*s",(int)(off - (hol - map) + 1),hol);
+				map[off] = '\0';
+				printf("%s: %s\n",val,hol);
 				s = STATE_HOL;
 			}
+			break;
 		}
 		++off;
 	}
@@ -121,7 +126,7 @@ lex_content_map(void *map,off_t inlen,struct dfa *dfa){
 		inflateEnd(&zstr);
 		return -1;
 	}*/
-	while((z = inflate(&zstr,Z_BLOCK)) != Z_STREAM_END){
+	while((z = inflate(&zstr,Z_SYNC_FLUSH)) != Z_STREAM_END){
 		if(z != Z_OK){
 			inflateEnd(&zstr);
 			free(scratch);
