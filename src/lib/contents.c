@@ -27,44 +27,51 @@ free1p(void *opaque __attribute__ ((unused)),void *addr){
 enum {
 	STATE_HOL,
 	STATE_MATCHING,
+	STATE_MATCHING_MATCHED,
 	STATE_INTER,
+	STATE_INTER_MATCHED,
 	STATE_VAL,
+	STATE_VAL_MATCHED,
 };
 
 static int
 lex_content(const void *vmap,size_t len,struct dfa *dfa){
-	const char *map = vmap;
+	const char *map = vmap,*hol;
 	size_t off = 0;
 	dfactx dctx;
 	int s;
 
 	s = STATE_HOL; // Ensure we're always starting on a fresh line! FIXME
+	hol = NULL;
 	while(off < len){
 		switch(s){
 		case STATE_HOL:
 			if(isspace(map[off])){
 				break;
 			}
+			hol = map + off;
 			init_dfactx(&dctx,dfa);
 			s = STATE_MATCHING;
 			// intentional fallthrough to do first match
-		case STATE_MATCHING:
+		case STATE_MATCHING: case STATE_MATCHING_MATCHED:
 			if(isspace(map[off])){
-				s = (map[off] == '\n') ? STATE_HOL : STATE_INTER;
+				s = (map[off] == '\n') ? STATE_HOL :
+					s == STATE_MATCHING_MATCHED ?
+						STATE_INTER_MATCHED : STATE_INTER;
 			}else{
-				const struct pkgobj *po = match_dfactx_char(&dctx,*map);
+				const struct pkgobj *po = match_dfactx_char(&dctx,map[off]);
 				if(po){ // FIXME
-					printf("MATCH %s\n",pkgobj_name(po));
+					s = STATE_MATCHING_MATCHED;
 				}
 			}
 			break;
-		case STATE_INTER:
+		case STATE_INTER: case STATE_INTER_MATCHED:
 			if(isspace(map[off])){
 				if(map[off] == '\n'){
 					s = STATE_HOL;
 				}
 			}else{
-				s = STATE_VAL;
+				s = s == STATE_INTER ? STATE_VAL : STATE_VAL_MATCHED;
 			}
 			break;
 		case STATE_VAL:
@@ -72,6 +79,11 @@ lex_content(const void *vmap,size_t len,struct dfa *dfa){
 				s = STATE_HOL;
 			}
 			break;
+		case STATE_VAL_MATCHED:
+			if(map[off] == '\n'){
+				printf("%.*s",(int)(off - (hol - map) + 1),hol);
+				s = STATE_HOL;
+			}
 		}
 		++off;
 	}
