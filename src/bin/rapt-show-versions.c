@@ -48,9 +48,9 @@ static int
 filtered_output_callback(const char *str,const void *peropaq,
 		const void *opaque __attribute__ ((unused))){
 	const struct pkgobj *po = peropaq;
-	const struct pkgobj *newpo;
+	const struct pkgobj *newpo,*ipo;
 
-	if(pkgobj_version(po) == NULL){
+	if((ipo = pkgcache_find_installed(po)) == NULL){
 		if((newpo = pkgcache_find_newest(po)) == NULL){
 			if(printf("%s is neither installed nor available\n",str) < 0){
 				return -1;
@@ -62,18 +62,18 @@ filtered_output_callback(const char *str,const void *peropaq,
 	}else{
 		if((newpo = pkgcache_find_newest(po)) == NULL){
 			if(printf("%s %s is installed (unavailable)\n",
-						str,pkgobj_version(po)) < 0){
+						str,pkgobj_version(ipo)) < 0){
 				return -1;
 			}
-		}else if(debcmp(pkgobj_version(newpo),pkgobj_version(po)) > 0){
+		}else if(debcmp(pkgobj_version(newpo),pkgobj_version(ipo)) > 0){
 			if(printf("%s/%s upgradeable from %s to %s\n",
-						str,pkgobj_dist(newpo),
-						pkgobj_version(po),
+						str,pkgobj_dist(ipo),
+						pkgobj_version(ipo),
 						pkgobj_version(newpo)) < 0){
 				return -1;
 			}
 		}else if(printf("%s/%s uptodate %s\n",str,pkgobj_dist(newpo),
-					pkgobj_version(po)) < 0){
+					pkgobj_version(ipo)) < 0){
 			return -1;
 		}
 	}
@@ -170,7 +170,6 @@ int main(int argc,char **argv){
 				*argv,strerror(err));
 			return EXIT_FAILURE;
 		}
-		printf("augment %p\n",po);
 		if(augment_dfa(&dfa,*argv,po)){
 			fprintf(stderr,"Failure adding %s to DFA\n",*argv);
 			return EXIT_FAILURE;

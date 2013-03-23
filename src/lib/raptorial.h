@@ -105,6 +105,9 @@ pkglist_next(const struct pkgobj *);
 PUBLIC const struct pkgobj *
 pkgcache_find_newest(const struct pkgobj *);
 
+PUBLIC const struct pkgobj *
+pkgcache_find_installed(const struct pkgobj *);
+
 PUBLIC const char *
 pkgobj_name(const struct pkgobj *);
 

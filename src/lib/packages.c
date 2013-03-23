@@ -772,6 +772,18 @@ lex_packages_dir(const char *dir,int *err,struct dfa *dfa){
 }
 
 PUBLIC const struct pkgobj *
+pkgcache_find_installed(const pkgobj *mpo){
+	const pkgobj *po;
+
+	for(po = mpo->dfanext ; po ; po = po->dfanext){
+		if(po->pl->uri && po->version){
+			return po;
+		}
+	}
+	return po;
+}
+
+PUBLIC const struct pkgobj *
 pkgcache_find_newest(const pkgobj *mpo){
 	const pkgobj *po,*newest = NULL;
 
