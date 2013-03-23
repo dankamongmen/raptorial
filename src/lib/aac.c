@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <assert.h>
 #include <raptorial.h>
 
 // Do not store pointers to either of these types (edges or dfactx's), as they

@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <assert.h>
 #include <pthread.h>
 #include <blossom.h>
 #include <sys/mman.h>
@@ -34,7 +35,7 @@ enum {
 };
 
 static int
-lex_content(void *vmap,size_t len,struct dfa *dfa){
+lex_content(void *vmap,size_t len,struct dfa *dfa,int *pastheader){
 	char *map = vmap,*hol,*val;
 	size_t off = 0;
 	dfactx dctx;
@@ -43,50 +44,42 @@ lex_content(void *vmap,size_t len,struct dfa *dfa){
 	s = STATE_HOL; // Ensure we're always starting on a fresh line! FIXME
 	hol = val = NULL;
 	while(off < len){
+		if(map[off] == '\n'){
+			map[off] = '\0';
+			if(s == STATE_VAL_MATCHED){
+				if(*pastheader){
+					printf("%s: %s\n",val,hol);
+				}else if(strcmp(hol,"FILE") == 0 && strcmp(val,"LOCATION") == 0){
+					*pastheader = 1;
+				}
+			}
+			s = STATE_HOL;
+			++off;
+			continue;
+		}
 		switch(s){
 		case STATE_HOL:
 			if(isspace(map[off])){
 				break;
 			}
 			hol = map + off;
-			init_dfactx(&dctx,dfa);
 			s = STATE_MATCHING;
 			// intentional fallthrough to do first match
 		case STATE_MATCHING:
 			if(isspace(map[off])){
-				if(map[off] != '\n'){
-					if(match_dfactx_against_nstring(&dctx,hol,map + off - hol)){
-						s = STATE_INTER_MATCHED;
-						map[off] = '\0';
-					}else{
-						s = STATE_INTER;
-					}
+				init_dfactx(&dctx,dfa);
+				if(!*pastheader || match_dfactx_against_nstring(&dctx,hol,map + off - hol)){
+					s = STATE_INTER_MATCHED;
+					map[off] = '\0';
 				}else{
-					//s = STATE_HOL;
-					s = STATE_VAL_MATCHED;
+					s = STATE_INTER;
 				}
 			}
 			break;
 		case STATE_INTER: case STATE_INTER_MATCHED:
-			if(isspace(map[off])){
-				if(map[off] == '\n'){
-					s = STATE_HOL;
-				}
-			}else{
-				s = s == STATE_INTER ? STATE_VAL : STATE_VAL_MATCHED;
+			if(!isspace(map[off])){
+				s = s == STATE_INTER_MATCHED ? STATE_VAL_MATCHED : STATE_VAL;
 				val = map + off;
-			}
-			break;
-		case STATE_VAL:
-			if(map[off] == '\n'){
-				s = STATE_HOL;
-			}
-			break;
-		case STATE_VAL_MATCHED:
-			if(map[off] == '\n'){
-				map[off] = '\0';
-				printf("%s: %s\n",val,hol);
-				s = STATE_HOL;
 			}
 			break;
 		}
@@ -100,7 +93,7 @@ lex_content_map(void *map,off_t inlen,struct dfa *dfa){
 	size_t scratchsize;
 	z_stream zstr;
 	void *scratch;
-	int z;
+	int z,ph;
 
 	if(inlen <= 0){
 		return -1;
@@ -127,6 +120,9 @@ lex_content_map(void *map,off_t inlen,struct dfa *dfa){
 		inflateEnd(&zstr);
 		return -1;
 	}*/
+	// There's a retarded freeform header at the beginning of each content
+	// file. See http://wiki.debian.org/RepositoryFormat#A.22Contents.22_indices.
+	ph = 0;
 	do{
 		z = inflate(&zstr,Z_NO_FLUSH);
 		if(z != Z_OK && z != Z_STREAM_END){
@@ -136,7 +132,7 @@ lex_content_map(void *map,off_t inlen,struct dfa *dfa){
 		}
 		if(scratchsize - zstr.avail_out){
 			fprintf(stderr,"lexing %ju\n",(uintmax_t)(scratchsize - zstr.avail_out));
-			if(lex_content(scratch,scratchsize - zstr.avail_out,dfa)){
+			if(lex_content(scratch,scratchsize - zstr.avail_out,dfa,&ph)){
 				inflateEnd(&zstr);
 				free(scratch);
 				return -1;
