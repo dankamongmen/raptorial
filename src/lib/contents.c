@@ -28,10 +28,9 @@ free1p(void *opaque __attribute__ ((unused)),void *addr){
 enum {
 	STATE_HOL,
 	STATE_MATCHING,
+	STATE_SINK,
 	STATE_INTER,
-	STATE_INTER_MATCHED,
 	STATE_VAL,
-	STATE_VAL_MATCHED,
 };
 
 static int
@@ -46,7 +45,7 @@ lex_content(void *vmap,size_t len,struct dfa *dfa,int *pastheader){
 	while(off < len){
 		if(map[off] == '\n'){
 			map[off] = '\0';
-			if(s == STATE_VAL_MATCHED){
+			if(s == STATE_VAL){
 				if(*pastheader){
 					printf("%s: %s\n",val,hol);
 				}else if(strcmp(hol,"FILE") == 0 && strcmp(val,"LOCATION") == 0){
@@ -64,24 +63,26 @@ lex_content(void *vmap,size_t len,struct dfa *dfa,int *pastheader){
 			}
 			hol = map + off;
 			s = STATE_MATCHING;
-			// intentional fallthrough to do first match
+			break;
 		case STATE_MATCHING:
 			if(isspace(map[off])){
 				init_dfactx(&dctx,dfa);
 				if(!*pastheader || match_dfactx_against_nstring(&dctx,hol,map + off - hol)){
-					s = STATE_INTER_MATCHED;
+					s = STATE_INTER;
 					map[off] = '\0';
 				}else{
-					s = STATE_INTER;
+					s = STATE_SINK;
 				}
 			}
 			break;
-		case STATE_INTER: case STATE_INTER_MATCHED:
+		case STATE_INTER:
 			if(!isspace(map[off])){
-				s = s == STATE_INTER_MATCHED ? STATE_VAL_MATCHED : STATE_VAL;
+				s = STATE_VAL;
 				val = map + off;
 			}
 			break;
+			// we only care about SINK/VAL when they get a
+			// newline, which is handled at the beginning.
 		}
 		++off;
 	}
@@ -131,7 +132,6 @@ lex_content_map(void *map,off_t inlen,struct dfa *dfa){
 			return -1;
 		}
 		if(scratchsize - zstr.avail_out){
-			fprintf(stderr,"lexing %ju\n",(uintmax_t)(scratchsize - zstr.avail_out));
 			if(lex_content(scratch,scratchsize - zstr.avail_out,dfa,&ph)){
 				inflateEnd(&zstr);
 				free(scratch);
