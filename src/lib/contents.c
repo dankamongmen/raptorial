@@ -76,7 +76,12 @@ lex_content(void *vmap,size_t len,struct dfa *dfa,int *pastheader){
 			}
 			break;
 		case STATE_INTER:
-			if(!isspace(map[off])){
+			if(*pastheader){
+				if(map[off] == '/'){
+					s = STATE_VAL;
+					val = map + off + 1;
+				}
+			}else if(!isspace(map[off])){
 				s = STATE_VAL;
 				val = map + off;
 			}
