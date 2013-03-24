@@ -34,7 +34,7 @@ enum {
 };
 
 static int
-lex_content(void *vmap,size_t len,struct dfa *dfa,int *pastheader){
+lex_content(void *vmap,size_t len,const struct dfa *dfa,int *pastheader){
 	char *map = vmap,*hol,*val;
 	size_t off = 0;
 	dfactx dctx;
@@ -95,7 +95,7 @@ lex_content(void *vmap,size_t len,struct dfa *dfa,int *pastheader){
 }
 
 static int
-lex_content_map(void *map,off_t inlen,struct dfa *dfa){
+lex_content_map(void *map,off_t inlen,const struct dfa *dfa){
 	size_t scratchsize;
 	z_stream zstr;
 	void *scratch;
@@ -154,13 +154,18 @@ lex_content_map(void *map,off_t inlen,struct dfa *dfa){
 	return 0;
 }
 
+// Paralellizing across the directory is of limited utility; compressed file
+// sizes vary by several orders of magnitude. If we can't finish our file
+// ourselves, place the zlib context on a work queue, and let threads fall
+// back to that.
 struct dirparse {
 	DIR *dir;
-	struct dfa *dfa;
+	const struct dfa *dfa;
+	z_stream zstr;
 };
 
 static int
-lex_packages_file_internal(const char *path,struct dfa *dfa){
+lex_packages_file_internal(const char *path,const struct dfa *dfa){
 	size_t mlen,len;
 	struct stat st;
 	void *map;
