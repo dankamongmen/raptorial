@@ -125,6 +125,21 @@ because libblossom doesn't allow hierarchal blossoms. See [bug #698][b698]).
 
 [b698]: https://www.sprezzatech.com/bugs/show_bug.cgi?id=698
 
+## Multiple matching
+
+Rather than use a standard string search algorithm, we make use of the
+Aho-Corasick automaton. This allows us to match all patterns against a text at
+the same time. It is intended that this be replaced by the "advanced" variant
+of the algorithm, so that we can benefit from skips following partial prefix
+matches.
+
+## Backwards skipping
+
+When we are matching against a single string, there's no benefit from the
+somewhat elaborate Aho-Corasick construction. In the case where we are matching
+a single string, and that string contains at least two different characters, we
+instead use Boyer-Moore (*not* Boyer-Moore-Harspool), to benefit from skips.
+
 ## Filtered list lexing
 
 Whenever we lex a list (status or package), we can accept a DFA to walk whilst
