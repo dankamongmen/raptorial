@@ -52,13 +52,14 @@ lex_content(void *vmap,size_t len,const struct dfa *dfa,int *pastheader){
 					*pastheader = 1;
 				}
 			}
+			hol = map + off;
 			s = STATE_HOL;
 			++off;
 			continue;
 		}
 		switch(s){
 		case STATE_HOL:
-			if(isspace(map[off])){
+			if(isspace(map[off])){ // stay in STATE_HOL
 				break;
 			}
 			hol = map + off;
@@ -70,8 +71,10 @@ lex_content(void *vmap,size_t len,const struct dfa *dfa,int *pastheader){
 				if(!*pastheader || match_dfactx_against_nstring(&dctx,hol,map + off - hol)){
 					s = STATE_INTER;
 					map[off] = '\0';
+					val = map + off;
 				}else{
 					s = STATE_SINK;
+					val = NULL;
 				}
 			}
 			break;
@@ -142,18 +145,18 @@ lex_content_map_nextshot(workmonad *wm,struct dirparse *dp){
 	wm->zstr.next_out = scratch;
 	wm->zstr.avail_out = scratchsize;
 	z = inflate(&wm->zstr,Z_NO_FLUSH);
+	scratchsize -= wm->zstr.avail_out;
 	if(z != Z_OK && z != Z_STREAM_END){
 		inflateEnd(&wm->zstr);
 		free(scratch);
 		return -1;
 	}
-	if(z == Z_OK){ // equivalent to zstr.avail_in == 0, no? FIXME
+	if(z == Z_OK){ // equivalent to zstr.avail_in == 0
 		enqueue_workmonad(wm,dp);
 	}
 	ph = 1;
-
-	if(scratchsize - wm->zstr.avail_out){
-		if(lex_content(scratch,scratchsize - wm->zstr.avail_out,dp->dfa,&ph)){
+	if(scratchsize){
+		if(lex_content(scratch,scratchsize,dp->dfa,&ph)){
 			// FIXME how to free inflate state at this point?
 			free(scratch);
 			return -1;
@@ -180,10 +183,6 @@ create_workmonad(void *map,size_t len,const z_stream *zstr,struct dirparse *dp){
 	workmonad *wm;
 
 	if( (wm = malloc(sizeof(*wm))) ){
-		/*if(pthread_mutex_init(&wm->lock,NULL)){
-			free(wm);
-			return NULL;
-		}*/
 		memcpy(&wm->zstr,zstr,sizeof(*zstr));
 		wm->len = len;
 		wm->map = map;
