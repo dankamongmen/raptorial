@@ -47,7 +47,7 @@ lex_content(void *vmap,size_t len,const struct dfa *dfa,int *pastheader){
 			map[off] = '\0';
 			if(s == STATE_VAL){
 				if(*pastheader){
-					printf("%s: %s\n",val,hol);
+					printf("%s: /%s\n",val,hol);
 				}else if(strcmp(hol,"FILE") == 0 && strcmp(val,"LOCATION") == 0){
 					*pastheader = 1;
 				}
@@ -94,11 +94,117 @@ lex_content(void *vmap,size_t len,const struct dfa *dfa,int *pastheader){
 	return 0;
 }
 
-static int
+/*static int
 lex_content_map(void *map,off_t inlen,const struct dfa *dfa){
 	size_t scratchsize;
 	z_stream zstr;
 	void *scratch;
+	int z,ph;
+
+	if(inlen <= 0){
+		return -1;
+	}
+	scratchsize = inlen * 2;
+	if((scratch = malloc(scratchsize)) == NULL){
+		return -1;
+	}
+	memset(&zstr,0,sizeof(zstr));
+	zstr.next_out = scratch;
+	zstr.avail_out = scratchsize;
+	zstr.next_in = map;
+	zstr.avail_in = inlen;
+	zstr.zalloc = alloc2p;
+	zstr.zfree = free1p;
+	zstr.opaque = NULL;
+	if(inflateInit2(&zstr,47) != Z_OK){
+		free(scratch);
+		return -1;
+	}
+	// There's a retarded freeform header at the beginning of each content
+	// file. See http://wiki.debian.org/RepositoryFormat#A.22Contents.22_indices.
+	ph = 1;
+	do{
+		z = inflate(&zstr,Z_NO_FLUSH);
+		if(z != Z_OK && z != Z_STREAM_END){
+			inflateEnd(&zstr);
+			free(scratch);
+			return -1;
+		}
+		if(scratchsize - zstr.avail_out){
+			if(lex_content(scratch,scratchsize - zstr.avail_out,dfa,&ph)){
+				inflateEnd(&zstr);
+				free(scratch);
+				return -1;
+			}
+		}
+		zstr.avail_out = scratchsize;
+		zstr.next_out = scratch;
+	}while(z == Z_OK);
+	if(inflateEnd(&zstr) != Z_OK){
+		free(scratch);
+		return -1;
+	}
+	free(scratch);
+	return 0;
+}*/
+
+// Paralellizing across the directory is of limited utility; compressed file
+// sizes vary by several orders of magnitude. If we can't finish our file
+// ourselves, place the zlib context on a work queue, and let threads fall
+// back to that.
+typedef struct workmonad {
+	void *map;
+	size_t len;
+	z_stream zstr;
+	pthread_mutex_t lock;
+	struct workmonad *next;
+} workmonad;
+
+// We need some mechanism to keep threads from exiting early, when the last
+// files are still in _oneshot(). Idea: prior to calling readdir_r(), post to
+// a semaphore. Decrement the semaphore once we're out of _oneshot() (and,
+// possibly, posted a work element). Other threads sleep on the semaphore if
+// they can't find actual work. Only after successfully sleeping on the
+// semaphore, and checking for newly posted work, can they exit. FIXME
+struct dirparse {
+	DIR *dir;
+	const struct dfa *dfa;
+
+	// The lock governs only queue; dir is synchronized by the kernel.
+	workmonad *queue;
+	pthread_mutex_t lock;
+};
+
+static workmonad *
+create_workmonad(void *map,size_t len,const z_stream *zstr,struct dirparse *dp){
+	workmonad *wm;
+
+	if( (wm = malloc(sizeof(*wm))) ){
+		if(pthread_mutex_init(&wm->lock,NULL)){
+			free(wm);
+			return NULL;
+		}
+		memcpy(&wm->zstr,zstr,sizeof(*zstr));
+		wm->len = len;
+		wm->map = map;
+		pthread_mutex_lock(&dp->lock);
+			wm->next = dp->queue;
+			dp->queue = wm;
+		pthread_mutex_unlock(&dp->lock);
+	}
+	return wm;
+}
+
+// Try to do the entire file in one go of inflate(). If we can't, exit so that
+// we can go on the work queue and get parallelized.
+//
+// FIXME lift allocation of scratchspace out of here, and keep it across the
+// life of the thread
+static int
+lex_content_map_oneshot(void *map,off_t inlen,struct dirparse *dp){
+	size_t scratchsize;
+	void *scratch;
+	z_stream zstr;
 	int z,ph;
 
 	if(inlen <= 0){
@@ -129,43 +235,45 @@ lex_content_map(void *map,off_t inlen,const struct dfa *dfa){
 	// There's a retarded freeform header at the beginning of each content
 	// file. See http://wiki.debian.org/RepositoryFormat#A.22Contents.22_indices.
 	ph = 0;
-	do{
-		z = inflate(&zstr,Z_NO_FLUSH);
-		if(z != Z_OK && z != Z_STREAM_END){
+	z = inflate(&zstr,Z_NO_FLUSH);
+	if(z != Z_OK && z != Z_STREAM_END){
+		inflateEnd(&zstr);
+		free(scratch);
+		return -1;
+	}
+	if(z == Z_OK){ // equivalent to zstr.avail_in == 0, no? FIXME
+		if(create_workmonad(map,zstr.avail_in,&zstr,dp) == NULL){
 			inflateEnd(&zstr);
 			free(scratch);
 			return -1;
 		}
-		if(scratchsize - zstr.avail_out){
-			if(lex_content(scratch,scratchsize - zstr.avail_out,dfa,&ph)){
-				inflateEnd(&zstr);
-				free(scratch);
-				return -1;
-			}
+	}
+	ph = 0;
+	if(scratchsize - zstr.avail_out){
+		if(lex_content(scratch,scratchsize - zstr.avail_out,dp->dfa,&ph)){
+			inflateEnd(&zstr);
+			free(scratch);
+			return -1;
 		}
-		zstr.avail_out = scratchsize;
-		zstr.next_out = scratch;
-	}while(z == Z_OK);
-	if(inflateEnd(&zstr) != Z_OK){
+	}
+	if(!ph){ // FIXME
+		fprintf(stderr,"Didn't consume header!\n");
+		assert(0);
+	}
+	if(z == Z_STREAM_END){
+		if(inflateEnd(&zstr) != Z_OK){
+			free(scratch);
+			return -1;
+		}
 		free(scratch);
-		return -1;
+		return 0;
 	}
 	free(scratch);
 	return 0;
 }
 
-// Paralellizing across the directory is of limited utility; compressed file
-// sizes vary by several orders of magnitude. If we can't finish our file
-// ourselves, place the zlib context on a work queue, and let threads fall
-// back to that.
-struct dirparse {
-	DIR *dir;
-	const struct dfa *dfa;
-	z_stream zstr;
-};
-
 static int
-lex_packages_file_internal(const char *path,const struct dfa *dfa){
+lex_packages_file_internal(const char *path,struct dirparse *dp){
 	size_t mlen,len;
 	struct stat st;
 	void *map;
@@ -201,7 +309,8 @@ lex_packages_file_internal(const char *path,const struct dfa *dfa){
 			return -1;
 		}
 	}
-	if(lex_content_map(map,st.st_size,dfa)){
+	if(lex_content_map_oneshot(map,st.st_size,dp)){
+		fprintf(stderr,"ONESHOT FAILURE\n");
 		close(fd);
 		return -1;
 	}
@@ -229,7 +338,8 @@ lex_dir(void *vdp){
 		if(strcmp(ext,".gz")){
 			continue;
 		}
-		if(lex_packages_file_internal(dent.d_name,dp->dfa)){
+		if(lex_packages_file_internal(dent.d_name,dp)){
+			fprintf(stderr,"ERROR LEXING\n");
 			return NULL;
 		}
 	}
@@ -242,6 +352,7 @@ lex_listdir(DIR *dir,int *err,struct dfa *dfa){
 	struct dirparse dp = {
 		.dir = dir,
 		.dfa = dfa,
+		.queue = NULL,
 	};
 	blossom_ctl bctl = {
 		.flags = 0,
