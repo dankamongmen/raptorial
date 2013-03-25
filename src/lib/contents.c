@@ -13,7 +13,6 @@
 #include <pthread.h>
 #include <blossom.h>
 #include <sys/mman.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 
 static void *
@@ -262,37 +261,17 @@ lex_content_map_oneshot(void *map,off_t inlen,struct dirparse *dp,
 static int
 lex_packages_file_internal(const char *path,struct dirparse *dp,void *infbuf,
 						size_t buflen){
-	struct stat st;
 	size_t mlen;
+	int fd,err;
 	void *map;
-	int fd;
 
 	if(path == NULL){
 		return -1;
 	}
-	if((fd = open(path,O_CLOEXEC)) < 0){
+	if((map = mapit(path,&mlen,&fd,1,&err)) == MAP_FAILED){
 		return -1;
 	}
-	if(fstat(fd,&st)){
-		close(fd);
-		return -1;
-	}
-	if((mlen = maplen(st.st_size)) == (size_t)-1){
-		close(fd);
-		return -1;
-	}
-	if((map = mmap(NULL,mlen,PROT_READ,MAP_SHARED|MAP_HUGETLB|MAP_POPULATE,fd,0)) == MAP_FAILED){
-		if(errno != EINVAL){
-			close(fd);
-			return -1;
-		}
-		// Try again without MAP_HUGETLB
-		if((map = mmap(NULL,mlen,PROT_READ,MAP_SHARED|MAP_POPULATE,fd,0)) == MAP_FAILED){
-			close(fd);
-			return -1;
-		}
-	}
-	if(lex_content_map_oneshot(map,st.st_size,dp,infbuf,buflen)){
+	if(lex_content_map_oneshot(map,mlen,dp,infbuf,buflen)){
 		close(fd);
 		return -1;
 	}
