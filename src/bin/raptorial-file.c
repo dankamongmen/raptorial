@@ -34,14 +34,10 @@ lowercase(const char *s){
 
 int main(int argc,char **argv){
 	const struct option longopts[] = {
-		{ "architecture", 1, NULL, 'a' },
 		{ "cache", 1, NULL, 'c' },
-		{ "cdrom-mount", 1, NULL, 'd' },
 		{ "from-deb", 0, NULL, 'D' },
 		{ "from-file", 1, NULL, 'f' },
 		{ "ignore-case", 0, NULL, 'i' },
-		{ "non-interactive", 0, NULL, 'N' },
-		{ "sources-list", 1, NULL, 's' },
 		{ "verbose", 0, NULL, 'v' },
                 { "help", 0, NULL, 'h' },
                 { NULL, 0, NULL, 0 }
@@ -52,7 +48,6 @@ int main(int argc,char **argv){
 
 	while((c = getopt_long(argc,argv,"h",longopts,&optind)) != -1){
 		switch(c){
-		case 'a':
 		case 'c':
 			if(cdir){
 				fprintf(stderr,"Provided -c/--cache twice, exiting\n");
@@ -61,9 +56,6 @@ int main(int argc,char **argv){
 			}
 			cdir = argv[optind];
 			break;
-		case 'd':
-		case 'D':
-		case 'f':
 		case 'i':
 			if(nocase){
 				fprintf(stderr,"Provided -i/--ignore-case twice, exiting\n");
@@ -72,8 +64,8 @@ int main(int argc,char **argv){
 			}
 			nocase = 1;
 			break;
-		case 'N':
-		case 's':
+		case 'D': // FIXME implement
+		case 'f': // FIXME implement
 		case 'v':
 			fprintf(stderr,"Sorry, '%c' is not yet implemented\n",c);
 			exit(EXIT_FAILURE);
