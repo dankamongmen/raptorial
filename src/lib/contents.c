@@ -151,48 +151,32 @@ enqueue_workmonad(workmonad *wm,struct dirparse *dp){
 }
 
 static int
-lex_content_map_nextshot(workmonad *wm,struct dirparse *dp){
-	size_t scratchsize;
-	void *scratch;
+lex_content_map_nextshot(workmonad *wm,struct dirparse *dp,
+				void *infbuf,size_t buflen){
 	int z,ph;
 
-	scratchsize = wm->zstr.avail_in * 2;
-	if((scratch = malloc(scratchsize)) == NULL){
-		return -1;
-	}
-	wm->zstr.next_out = scratch;
-	wm->zstr.avail_out = scratchsize;
+	wm->zstr.next_out = infbuf;
+	wm->zstr.avail_out = buflen;
 	z = inflate(&wm->zstr,Z_NO_FLUSH);
-	scratchsize -= wm->zstr.avail_out;
 	if(z != Z_OK && z != Z_STREAM_END){
 		inflateEnd(&wm->zstr);
-		free(scratch);
 		return -1;
 	}
 	if(z == Z_OK){ // equivalent to zstr.avail_in == 0
 		enqueue_workmonad(wm,dp);
 	}
 	ph = 1;
-	if(scratchsize){
-		if(lex_content(scratch,scratchsize,dp->dfa,&ph,dp->nocase)){
-			// FIXME how to free inflate state at this point?
-			free(scratch);
-			return -1;
-		}
-	}else{
-		fprintf(stderr,"Didn't consume input!\n");
-		assert(0);
+	if(lex_content(infbuf,buflen,dp->dfa,&ph,dp->nocase)){
+		// FIXME how to free inflate state at this point?
+		return -1;
 	}
 	if(z == Z_STREAM_END){
 		if(inflateEnd(&wm->zstr) != Z_OK){
-			free(scratch);
 			return -1;
 		}
-		free(scratch);
 		finish_workmonad(wm,dp);
 		return 0;
 	}
-	free(scratch);
 	return 0;
 }
 
@@ -215,29 +199,23 @@ create_workmonad(void *map,size_t len,const z_stream *zstr,struct dirparse *dp){
 // FIXME lift allocation of scratchspace out of here, and keep it across the
 // life of the thread
 static int
-lex_content_map_oneshot(void *map,off_t inlen,struct dirparse *dp){
-	size_t scratchsize;
-	void *scratch;
+lex_content_map_oneshot(void *map,off_t inlen,struct dirparse *dp,
+				void *infbuf,size_t buflen){
 	z_stream zstr;
 	int z,ph;
 
 	if(inlen <= 0){
 		return -1;
 	}
-	scratchsize = inlen * 2;
-	if((scratch = malloc(scratchsize)) == NULL){
-		return -1;
-	}
 	memset(&zstr,0,sizeof(zstr));
-	zstr.next_out = scratch;
-	zstr.avail_out = scratchsize;
+	zstr.next_out = infbuf;
+	zstr.avail_out = buflen;
 	zstr.next_in = map;
 	zstr.avail_in = inlen;
 	zstr.zalloc = alloc2p;
 	zstr.zfree = free1p;
 	zstr.opaque = NULL;
 	if(inflateInit2(&zstr,47) != Z_OK){
-		free(scratch);
 		return -1;
 	}
 	/*gz_header gzh;
@@ -252,24 +230,19 @@ lex_content_map_oneshot(void *map,off_t inlen,struct dirparse *dp){
 	z = inflate(&zstr,Z_NO_FLUSH);
 	if(z != Z_OK && z != Z_STREAM_END){
 		inflateEnd(&zstr);
-		free(scratch);
 		return -1;
 	}
 	if(z == Z_OK){ // equivalent to zstr.avail_in == 0, no? FIXME
 		if(create_workmonad(map,zstr.avail_in,&zstr,dp) == NULL){
 			inflateEnd(&zstr);
-			free(scratch);
 			return -1;
 		}
 	}
 	ph = 0;
-	if(scratchsize - zstr.avail_out){
-		if(lex_content(scratch,scratchsize - zstr.avail_out,dp->dfa,
-					&ph,dp->nocase)){
-			inflateEnd(&zstr);
-			free(scratch);
-			return -1;
-		}
+	if(lex_content(infbuf,buflen - zstr.avail_out,dp->dfa,
+				&ph,dp->nocase)){
+		inflateEnd(&zstr);
+		return -1;
 	}
 	if(!ph){ // FIXME
 		fprintf(stderr,"Didn't consume header!\n");
@@ -277,19 +250,17 @@ lex_content_map_oneshot(void *map,off_t inlen,struct dirparse *dp){
 	}
 	if(z == Z_STREAM_END){
 		if(inflateEnd(&zstr) != Z_OK){
-			free(scratch);
 			return -1;
 		}
-		free(scratch);
 		finish_workmonad(NULL,dp);
 		return 0;
 	}
-	free(scratch);
 	return 0;
 }
 
 static int
-lex_packages_file_internal(const char *path,struct dirparse *dp){
+lex_packages_file_internal(const char *path,struct dirparse *dp,void *infbuf,
+						size_t buflen){
 	size_t mlen,len;
 	struct stat st;
 	void *map;
@@ -325,7 +296,7 @@ lex_packages_file_internal(const char *path,struct dirparse *dp){
 			return -1;
 		}
 	}
-	if(lex_content_map_oneshot(map,st.st_size,dp)){
+	if(lex_content_map_oneshot(map,st.st_size,dp,infbuf,buflen)){
 		close(fd);
 		return -1;
 	}
@@ -334,7 +305,7 @@ lex_packages_file_internal(const char *path,struct dirparse *dp){
 }
 
 static int
-lex_workqueue(struct dirparse *dp){
+lex_workqueue(struct dirparse *dp,void *infbuf,size_t buflen){
 	workmonad *wm;
 
 	while(pthread_mutex_lock(&dp->lock) == 0){
@@ -346,7 +317,7 @@ lex_workqueue(struct dirparse *dp){
 		if(wm == NULL){ // FIXME see notes about early exit
 			return 0;
 		}
-		if(lex_content_map_nextshot(wm,dp)){
+		if(lex_content_map_nextshot(wm,dp,infbuf,buflen)){
 			return -1;
 		}
 	}
@@ -357,9 +328,16 @@ static void *
 lex_dir(void *vdp){
 	struct dirparse *dp = vdp;
 	struct dirent dent,*pdent;
+	size_t infbuflen;
 	unsigned holdup;
+	void *infbuf;
 	int r;
 
+	infbuflen = 16 * 1024 * 1024; // FIXME aieeee
+	if((infbuf = malloc(infbuflen)) == NULL){
+		fprintf(stderr,"Couldn't allocate %zu bytes\n",infbuflen);
+		return NULL;
+	}
 	pthread_mutex_lock(&dp->lock);
 	++dp->holdup_sem;
 	pthread_mutex_unlock(&dp->lock);
@@ -375,32 +353,28 @@ lex_dir(void *vdp){
 		if(strcmp(ext,".gz")){
 			continue;
 		}
-		if(lex_packages_file_internal(dent.d_name,dp)){
+		if(lex_packages_file_internal(dent.d_name,dp,infbuf,infbuflen)){
+			free(infbuf);
 			return NULL;
 		}
 		pthread_mutex_lock(&dp->lock);
 		++dp->holdup_sem;
 		pthread_mutex_unlock(&dp->lock);
 	}
-	pthread_mutex_lock(&dp->lock);
-	--dp->holdup_sem;
-	pthread_mutex_unlock(&dp->lock);
+	finish_workmonad(NULL,dp);
 	if(r){
 		return NULL;
-	}
-	if(pdent == NULL){
-		if(lex_workqueue(dp)){
-			return NULL;
-		}
 	}
 	do{
 		pthread_mutex_lock(&dp->lock);
 		holdup = dp->holdup_sem;
 		pthread_mutex_unlock(&dp->lock);
-		if(lex_workqueue(dp)){
+		if(lex_workqueue(dp,infbuf,infbuflen)){
+			free(infbuf);
 			return NULL;
 		}
 	}while(holdup);
+	free(infbuf);
 	return dp;
 }
 
