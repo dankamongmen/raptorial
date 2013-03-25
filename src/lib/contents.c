@@ -132,6 +132,15 @@ struct dirparse {
 };
 
 static inline void
+finish_workmonad(workmonad *wm,struct dirparse *dp){
+	free(wm);
+	pthread_mutex_lock(&dp->lock);
+		--dp->holdup_sem;
+	pthread_mutex_unlock(&dp->lock);
+	pthread_cond_signal(&dp->cond);
+}
+
+static inline void
 enqueue_workmonad(workmonad *wm,struct dirparse *dp){
 	pthread_mutex_lock(&dp->lock);
 		wm->next = dp->queue;
@@ -180,7 +189,7 @@ lex_content_map_nextshot(workmonad *wm,struct dirparse *dp){
 			return -1;
 		}
 		free(scratch);
-		free(wm);
+		finish_workmonad(wm,dp);
 		return 0;
 	}
 	free(scratch);
@@ -272,6 +281,7 @@ lex_content_map_oneshot(void *map,off_t inlen,struct dirparse *dp){
 			return -1;
 		}
 		free(scratch);
+		finish_workmonad(NULL,dp);
 		return 0;
 	}
 	free(scratch);
@@ -382,15 +392,16 @@ lex_dir(void *vdp){
 		if(lex_workqueue(dp)){
 			return NULL;
 		}
-		return dp;
 	}
 	do{
 		pthread_mutex_lock(&dp->lock);
 		holdup = dp->holdup_sem;
 		pthread_mutex_unlock(&dp->lock);
-		lex_workqueue(dp);
+		if(lex_workqueue(dp)){
+			return NULL;
+		}
 	}while(holdup);
-	return NULL;
+	return dp;
 }
 
 // len is the true length, less than or equal to the mapped length.
