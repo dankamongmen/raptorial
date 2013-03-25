@@ -56,13 +56,13 @@ int main(int argc,char **argv){
 			break;
 		}
 	}
+	dfa = NULL;
 	cdir = raptorial_def_content_dir();
 	if(argv[optind] == NULL){
 		fprintf(stderr,"Didn't provide any search terms!\n");
 		usage(argv[0],EXIT_FAILURE);
 	}
-	dfa = NULL;
-	while(argv[optind]){
+	do{
                 struct pkgobj *po;
 
                 if((po = create_stub_package(argv[optind],&err)) == NULL){
@@ -75,7 +75,7 @@ int main(int argc,char **argv){
                         return EXIT_FAILURE;
                 }
                 ++optind;
-	}
+	}while(argv[optind]);
 	if(lex_contents_dir(cdir,&err,dfa)){
 		fprintf(stderr,"Error matching contents files (%s?)\n",strerror(err));
 		return EXIT_FAILURE;
