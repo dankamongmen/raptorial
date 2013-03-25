@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <paths.h>
+#include <ctype.h>
 #include <stdlib.h>
 #include <getopt.h>
 #include "config.h"
@@ -25,7 +26,7 @@ lowercase(const char *s){
 		unsigned z;
 
 		for(z = 0 ; z <= strlen(s) ; ++z){
-			ret[z] = s[z];
+			ret[z] = tolower(s[z]);
 		}
 	}
 	return ret;
@@ -115,7 +116,7 @@ int main(int argc,char **argv){
 		free(s);
                 ++optind;
 	}while(argv[optind]);
-	if(lex_contents_dir(cdir,&err,dfa)){
+	if(lex_contents_dir(cdir,&err,dfa,nocase)){
 		fprintf(stderr,"Error matching contents files (%s?)\n",strerror(err));
 		return EXIT_FAILURE;
 	}

@@ -34,7 +34,7 @@ enum {
 };
 
 static int
-lex_content(void *vmap,size_t len,const struct dfa *dfa,int *pastheader){
+lex_content(void *vmap,size_t len,const struct dfa *dfa,int *pastheader,int nocase){
 	char *map = vmap,*hol,*val;
 	size_t off = 0;
 	dfactx dctx;
@@ -64,6 +64,9 @@ lex_content(void *vmap,size_t len,const struct dfa *dfa,int *pastheader){
 			}
 			hol = map + off;
 			s = STATE_MATCHING;
+			if(nocase){
+				map[off] = tolower(map[off]);
+			}
 			break;
 		case STATE_MATCHING:
 			if(isspace(map[off])){
@@ -76,6 +79,8 @@ lex_content(void *vmap,size_t len,const struct dfa *dfa,int *pastheader){
 					s = STATE_SINK;
 					val = NULL;
 				}
+			}else if(nocase){
+				map[off] = tolower(map[off]);
 			}
 			break;
 		case STATE_INTER:
@@ -116,6 +121,7 @@ typedef struct workmonad {
 // semaphore, and checking for newly posted work, can they exit.
 struct dirparse {
 	DIR *dir;
+	int nocase;
 	const struct dfa *dfa;
 
 	// The lock governs only queue; dir is synchronized by the kernel.
@@ -159,7 +165,7 @@ lex_content_map_nextshot(workmonad *wm,struct dirparse *dp){
 	}
 	ph = 1;
 	if(scratchsize){
-		if(lex_content(scratch,scratchsize,dp->dfa,&ph)){
+		if(lex_content(scratch,scratchsize,dp->dfa,&ph,dp->nocase)){
 			// FIXME how to free inflate state at this point?
 			free(scratch);
 			return -1;
@@ -249,7 +255,8 @@ lex_content_map_oneshot(void *map,off_t inlen,struct dirparse *dp){
 	}
 	ph = 0;
 	if(scratchsize - zstr.avail_out){
-		if(lex_content(scratch,scratchsize - zstr.avail_out,dp->dfa,&ph)){
+		if(lex_content(scratch,scratchsize - zstr.avail_out,dp->dfa,
+					&ph,dp->nocase)){
 			inflateEnd(&zstr);
 			free(scratch);
 			return -1;
@@ -388,12 +395,13 @@ lex_dir(void *vdp){
 
 // len is the true length, less than or equal to the mapped length.
 static int
-lex_listdir(DIR *dir,int *err,struct dfa *dfa){
+lex_listdir(DIR *dir,int *err,struct dfa *dfa,int nocase){
 	struct dirparse dp = {
 		.dir = dir,
 		.dfa = dfa,
 		.queue = NULL,
 		.holdup_sem = 0,
+		.nocase = nocase,
 	};
 	blossom_ctl bctl = {
 		.flags = 0,
@@ -439,7 +447,7 @@ lex_listdir(DIR *dir,int *err,struct dfa *dfa){
 // If dfa is non-NULL, it will be used to filter our list. This function is
 // not capable of building a DFA.
 PUBLIC int
-lex_contents_dir(const char *dir,int *err,struct dfa *dfa){
+lex_contents_dir(const char *dir,int *err,struct dfa *dfa,int nocase){
 	DIR *d;
 
 	if((d = opendir(dir)) == NULL){
@@ -452,7 +460,7 @@ lex_contents_dir(const char *dir,int *err,struct dfa *dfa){
 		closedir(d);
 		return -1;
 	}
-	if(lex_listdir(d,err,dfa)){
+	if(lex_listdir(d,err,dfa,nocase)){
 		closedir(d);
 		return -1;
 	}

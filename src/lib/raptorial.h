@@ -64,11 +64,13 @@ PUBLIC struct pkgcache *
 lex_packages_dir(const char *,int *,struct dfa *);
 
 // Walks all contents cachefiles. The tables will be processed in parallel.
+// Set the nocase flag for insensitive matching; in this case, the DFA must
+// have been built using lowercased patterns.
 //
 // If dfa is non-NULL, it will be used to filter our list. This function is
 // not capable of building a DFA.
 PUBLIC int
-lex_contents_dir(const char *,int *,struct dfa *);
+lex_contents_dir(const char *,int *,struct dfa *,int nocase);
 
 // Wrap a package list in a single-index cache object. Returns NULL if passed
 // NULL, without modifying err, allowing use in functional composition. Frees
