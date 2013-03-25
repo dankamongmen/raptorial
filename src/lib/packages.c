@@ -12,7 +12,6 @@
 #include <pthread.h>
 #include <blossom.h>
 #include <sys/mman.h>
-#include <sys/stat.h>
 #include <sys/types.h>
 #include <raptorial.h>
 
@@ -477,7 +476,6 @@ static pkglist *
 lex_packages_file_internal(const char *path,int *err,int statusfile,
 						struct dfa **dfa){
 	const void *map;
-	struct stat st;
 	size_t mlen;
 	pkglist *pl;
 	int fd;
@@ -486,34 +484,10 @@ lex_packages_file_internal(const char *path,int *err,int statusfile,
 		*err = EINVAL;
 		return NULL;
 	}
-	if((fd = open(path,O_CLOEXEC)) < 0){
-		*err = errno;
+	if((map = mapit(path,&mlen,&fd,1,err)) == MAP_FAILED){
 		return NULL;
 	}
-	if(fstat(fd,&st)){
-		*err = errno;
-		close(fd);
-		return NULL;
-	}
-	if((mlen = maplen(st.st_size)) == (size_t)-1){
-		*err = errno;
-		close(fd);
-		return NULL;
-	}
-	if((map = mmap(NULL,mlen,PROT_READ,MAP_SHARED|MAP_HUGETLB|MAP_POPULATE,fd,0)) == MAP_FAILED){
-		if(errno != EINVAL){
-			*err = errno;
-			close(fd);
-			return NULL;
-		}
-		// Try again without MAP_HUGETLB
-		if((map = mmap(NULL,mlen,PROT_READ,MAP_SHARED|MAP_POPULATE,fd,0)) == MAP_FAILED){
-			*err = errno;
-			close(fd);
-			return NULL;
-		}
-	}
-	if((pl = create_pkglist(map,st.st_size,err,statusfile,dfa)) == NULL){
+	if((pl = create_pkglist(map,mlen,err,statusfile,dfa)) == NULL){
 		close(fd);
 		return NULL;
 	}
