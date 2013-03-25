@@ -17,6 +17,20 @@ usage(const char *name,int retcode){
 	exit(retcode);
 }
 
+static char *
+lowercase(const char *s){
+	char *ret;
+
+	if( (ret = malloc((strlen(s) + 1) * sizeof(*ret))) ){
+		unsigned z;
+
+		for(z = 0 ; z <= strlen(s) ; ++z){
+			ret[z] = s[z];
+		}
+	}
+	return ret;
+}
+
 int main(int argc,char **argv){
 	const struct option longopts[] = {
 		{ "architecture", 1, NULL, 'a' },
@@ -24,6 +38,7 @@ int main(int argc,char **argv){
 		{ "cdrom-mount", 1, NULL, 'd' },
 		{ "from-deb", 0, NULL, 'D' },
 		{ "from-file", 1, NULL, 'f' },
+		{ "ignore-case", 0, NULL, 'i' },
 		{ "non-interactive", 0, NULL, 'N' },
 		{ "sources-list", 1, NULL, 's' },
 		{ "verbose", 0, NULL, 'v' },
@@ -31,8 +46,8 @@ int main(int argc,char **argv){
                 { NULL, 0, NULL, 0 }
         };
 	const char *cdir = NULL;
+	int c,err,nocase = 0;
 	struct dfa *dfa;
-	int c,err;
 
 	while((c = getopt_long(argc,argv,"h",longopts,&optind)) != -1){
 		switch(c){
@@ -48,6 +63,14 @@ int main(int argc,char **argv){
 		case 'd':
 		case 'D':
 		case 'f':
+		case 'i':
+			if(nocase){
+				fprintf(stderr,"Provided -i/--ignore-case twice, exiting\n");
+				usage(argv[0],EXIT_FAILURE);
+				break;
+			}
+			nocase = 1;
+			break;
 		case 'N':
 		case 's':
 		case 'v':
@@ -73,16 +96,23 @@ int main(int argc,char **argv){
 	}
 	do{
                 struct pkgobj *po;
+		char *s;
 
-                if((po = create_stub_package(argv[optind],&err)) == NULL){
+		if((s = nocase ? lowercase(argv[optind]) : strdup(argv[optind])) == NULL){
+			return EXIT_FAILURE;
+		}
+                if((po = create_stub_package(s,&err)) == NULL){
                         fprintf(stderr,"Couldn't create stub package %s (%s?)\n",
                                 argv[optind],strerror(err));
+			free(s);
                         return EXIT_FAILURE;
                 }
-                if(augment_dfa(&dfa,argv[optind],po)){
+                if(augment_dfa(&dfa,s,po)){
                         fprintf(stderr,"Failure adding %s to dfa\n",argv[optind]);
+			free(s);
                         return EXIT_FAILURE;
                 }
+		free(s);
                 ++optind;
 	}while(argv[optind]);
 	if(lex_contents_dir(cdir,&err,dfa)){
