@@ -134,6 +134,9 @@ raptorial_def_status_file(void);
 PUBLIC const char *
 raptorial_def_content_dir(void);
 
+PUBLIC const char *
+raptorial_def_changelog(void);
+
 typedef struct dfactx {
 	const struct dfa *dfa;
 	unsigned cur;
