@@ -15,6 +15,11 @@ usage(const char *name,int retcode){
 	fprintf(fp," invoked as %s\n",name);
 	fprintf(fp,"\n");
 	fprintf(fp,"usage: raptorial-file [ options ] patterns\n");
+	fprintf(fp,"options:\n");
+	fprintf(fp,"\t-c/--cache cachedir: content files directory\n");
+	fprintf(fp,"\t\t(%s by default)\n",raptorial_def_content_dir());
+	fprintf(fp,"\t-i/--ignore-case: case-insensitive matching\n");
+	fprintf(fp,"\t-h/--help: this output\n");
 	exit(retcode);
 }
 
@@ -46,7 +51,7 @@ int main(int argc,char **argv){
 	int c,err,nocase = 0;
 	struct dfa *dfa;
 
-	while((c = getopt_long(argc,argv,"h",longopts,&optind)) != -1){
+	while((c = getopt_long(argc,argv,"hic:Df:v",longopts,&optind)) != -1){
 		switch(c){
 		case 'c':
 			if(cdir){
