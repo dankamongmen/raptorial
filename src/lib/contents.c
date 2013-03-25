@@ -109,18 +109,20 @@ typedef struct workmonad {
 } workmonad;
 
 // We need some mechanism to keep threads from exiting early, when the last
-// files are still in _oneshot(). Idea: prior to calling readdir_r(), post to
-// a semaphore. Decrement the semaphore once we're out of _oneshot() (and,
+// files are still in _oneshot(). Prior to calling readdir_r(), post to the
+// semaphore. Decrement the semaphore once we're out of _oneshot() (and,
 // possibly, posted a work element). Other threads sleep on the semaphore if
 // they can't find actual work. Only after successfully sleeping on the
-// semaphore, and checking for newly posted work, can they exit. FIXME
+// semaphore, and checking for newly posted work, can they exit.
 struct dirparse {
 	DIR *dir;
 	const struct dfa *dfa;
 
 	// The lock governs only queue; dir is synchronized by the kernel.
 	workmonad *queue;
+	unsigned holdup_sem;
 	pthread_mutex_t lock;
+	pthread_cond_t cond;
 };
 
 static inline void
@@ -128,8 +130,9 @@ enqueue_workmonad(workmonad *wm,struct dirparse *dp){
 	pthread_mutex_lock(&dp->lock);
 		wm->next = dp->queue;
 		dp->queue = wm;
+		--dp->holdup_sem;
 	pthread_mutex_unlock(&dp->lock);
-	// we'll want to signal the condvar FIXME
+	pthread_cond_signal(&dp->cond);
 }
 
 static int
@@ -320,6 +323,7 @@ lex_workqueue(struct dirparse *dp){
 	while(pthread_mutex_lock(&dp->lock) == 0){
 		if( (wm = dp->queue) ){
 			dp->queue = wm->next;
+			++dp->holdup_sem;
 		}
 		pthread_mutex_unlock(&dp->lock);
 		if(wm == NULL){ // FIXME see notes about early exit
@@ -336,16 +340,15 @@ static void *
 lex_dir(void *vdp){
 	struct dirparse *dp = vdp;
 	struct dirent dent,*pdent;
+	unsigned holdup;
+	int r;
 
-	while(readdir_r(dp->dir,&dent,&pdent) == 0){
+	pthread_mutex_lock(&dp->lock);
+	++dp->holdup_sem;
+	pthread_mutex_unlock(&dp->lock);
+	while( (r = readdir_r(dp->dir,&dent,&pdent)) == 0 && pdent){
 		const char *ext;
 
-		if(pdent == NULL){
-			if(lex_workqueue(dp)){
-				return NULL;
-			}
-			return dp;
-		}
 		if(dent.d_type != DT_REG && dent.d_type != DT_LNK){
 			continue; // FIXME maybe don't skip DT_UNKNOWN?
 		}
@@ -358,7 +361,28 @@ lex_dir(void *vdp){
 		if(lex_packages_file_internal(dent.d_name,dp)){
 			return NULL;
 		}
+		pthread_mutex_lock(&dp->lock);
+		++dp->holdup_sem;
+		pthread_mutex_unlock(&dp->lock);
 	}
+	pthread_mutex_lock(&dp->lock);
+	--dp->holdup_sem;
+	pthread_mutex_unlock(&dp->lock);
+	if(r){
+		return NULL;
+	}
+	if(pdent == NULL){
+		if(lex_workqueue(dp)){
+			return NULL;
+		}
+		return dp;
+	}
+	do{
+		pthread_mutex_lock(&dp->lock);
+		holdup = dp->holdup_sem;
+		pthread_mutex_unlock(&dp->lock);
+		lex_workqueue(dp);
+	}while(holdup);
 	return NULL;
 }
 
@@ -369,27 +393,46 @@ lex_listdir(DIR *dir,int *err,struct dfa *dfa){
 		.dir = dir,
 		.dfa = dfa,
 		.queue = NULL,
+		.holdup_sem = 0,
 	};
 	blossom_ctl bctl = {
 		.flags = 0,
 		.tids = 1,
 	};
 	blossom_state bs;
+	int r;
 
+	if( (r = pthread_mutex_init(&dp.lock,NULL)) ){
+		*err = r;
+		return -1;
+	}
+	if( (r = pthread_cond_init(&dp.cond,NULL)) ){
+		*err = r;
+		pthread_mutex_destroy(&dp.lock);
+		return -1;
+	}
 	if(blossom_per_pe(&bctl,&bs,NULL,lex_dir,&dp)){
 		*err = errno;
+		pthread_mutex_destroy(&dp.lock);
+		pthread_cond_destroy(&dp.cond);
 		return -1;
 	}
 	if(blossom_join_all(&bs)){
 		*err = errno;
 		blossom_free_state(&bs);
+		pthread_mutex_destroy(&dp.lock);
+		pthread_cond_destroy(&dp.cond);
 		return -1;
 	}
 	if(blossom_validate_joinrets(&bs)){
 		blossom_free_state(&bs);
+		pthread_mutex_destroy(&dp.lock);
+		pthread_cond_destroy(&dp.cond);
 		return -1;
 	}
 	blossom_free_state(&bs);
+	pthread_mutex_destroy(&dp.lock);
+	pthread_cond_destroy(&dp.cond);
 	return 0;
 }
 
