@@ -9,7 +9,10 @@ AM_CPPFLAGS=-I $(SRCDIR)/src/lib
 
 LIBS+=$(PTHREAD_LIBS) 
 
-dist_man_MANS = rapt-show-versions.1 raptorial-file.1 libraptorial.3
+dist_man_MANS = rapt-parsechangelog.1 \
+		rapt-show-versions.1 \
+		raptorial-file.1 \
+		libraptorial.3
 
 doc_DIR=doc
 doc_DATA=
@@ -18,7 +21,7 @@ doc_DATA+=README.md
 dist_doc_DATA=
 dist_doc_DATA+=COPYING libraptorial.xhtml
 
-bin_PROGRAMS=rapt-show-versions raptorial-file
+bin_PROGRAMS=rapt-show-versions raptorial-file rapt-parsechangelog
 
 check_PROGRAMS=raptorial-tester
 
@@ -28,7 +31,7 @@ noinst_HEADERS=src/lib/aac.h
 
 lib_LTLIBRARIES = libraptorial.la
 libraptorial_la_SOURCES = src/lib/packages.c src/lib/paths.c src/lib/aac.c \
-	src/lib/versioncmp.c src/lib/contents.c
+	src/lib/versioncmp.c src/lib/contents.c src/lib/changelog.c
 
 raptorial_tester_SOURCES = src/tester/main.c
 raptorial_tester_LDADD = libraptorial.la
@@ -38,6 +41,9 @@ rapt_show_versions_LDADD = libraptorial.la
 
 raptorial_file_SOURCES = src/bin/raptorial-file.c
 raptorial_file_LDADD = libraptorial.la
+
+rapt_parsechangelog_SOURCES = src/bin/rapt-parsechangelog.c
+rapt_parsechangelog_LDADD = libraptorial.la
 
 check: $(srcdir)/tests/Packages $(bin_PROGRAMS)
 	./raptorial-tester $(srcdir)/tests/Packages
