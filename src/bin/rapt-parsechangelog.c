@@ -1,0 +1,59 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <config.h>
+#include <getopt.h>
+#include <raptorial.h>
+
+static void
+usage(const char *name,int retcode){
+	FILE *fp = (retcode == EXIT_SUCCESS) ? stdout : stderr;
+
+	fprintf(fp,"rapt-parsechangelog v%s by nick black <dank@qemfd.net>\n",PACKAGE_VERSION);
+	fprintf(fp," invoked as %s\n",name);
+	fprintf(fp,"\n");
+	fprintf(fp,"usage: rapt-parsechangelog [ options ]\n");
+	fprintf(fp,"options:\n");
+	fprintf(fp,"\t-lchangelog: changelog to parse (default: %s)\n",raptorial_def_changelog());
+	fprintf(fp,"\t-Fchangelogfmt: changelog format (default: debian)\n");
+	fprintf(fp,"\t-h/--help: this output\n");
+	exit(retcode);
+}
+
+int main(int argc,char **argv){
+	const struct option longopts[] = {
+                { "help", 0, NULL, 'h' },
+                { NULL, 0, NULL, 0 }
+        };
+	const char *clog = NULL;
+	int c;
+
+	while((c = getopt_long(argc,argv,"hl:F:",longopts,&optind)) != -1){
+		switch(c){
+		case 'F':
+			fprintf(stderr,"Sorry, '-%c' is not yet implemented\n",c);
+			exit(EXIT_FAILURE);
+			break;
+		case 'l':
+			if(clog){
+				fprintf(stderr,"Set changelog twice! Exiting\n");
+				usage(argv[0],EXIT_FAILURE);
+			}
+			clog = argv[optind];
+			break;
+		case 'h':
+			usage(argv[0],EXIT_SUCCESS);
+			break;
+		default:
+			fprintf(stderr,"Unknown option: %c\n",c);
+			usage(argv[0],EXIT_FAILURE);
+			break;
+		}
+	}
+	if(clog == NULL){
+		clog = raptorial_def_changelog();
+	}
+	if(argv[optind]){
+		usage(argv[0],EXIT_FAILURE);
+	}
+	return EXIT_SUCCESS;
+}
