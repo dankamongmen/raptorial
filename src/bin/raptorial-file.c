@@ -62,19 +62,19 @@ int main(int argc,char **argv){
 		usage(argv[0],EXIT_FAILURE);
 	}
 	dfa = NULL;
-	while(*argv){
+	while(argv[optind]){
                 struct pkgobj *po;
 
-                if((po = create_stub_package(*argv,&err)) == NULL){
+                if((po = create_stub_package(argv[optind],&err)) == NULL){
                         fprintf(stderr,"Couldn't create stub package %s (%s?)\n",
-                                *argv,strerror(err));
+                                argv[optind],strerror(err));
                         return EXIT_FAILURE;
                 }
-                if(augment_dfa(&dfa,*argv,po)){
-                        fprintf(stderr,"Failure adding %s to dfa\n",*argv);
+                if(augment_dfa(&dfa,argv[optind],po)){
+                        fprintf(stderr,"Failure adding %s to dfa\n",argv[optind]);
                         return EXIT_FAILURE;
                 }
-                ++argv;
+                ++optind;
 	}
 	if(lex_contents_dir(cdir,&err,dfa)){
 		fprintf(stderr,"Error matching contents files (%s?)\n",strerror(err));
