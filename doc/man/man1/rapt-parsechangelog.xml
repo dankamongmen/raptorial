@@ -53,7 +53,6 @@
 				<firstname>Ian</firstname>
 				<surname>Jackson</surname>
 				<contrib>Original dpkg-parsechangelog(1).</contrib>
-				<address><email>sjg@debian.org</email></address>
 			</author>
 		</authorgroup>
 	</refentryinfo>
