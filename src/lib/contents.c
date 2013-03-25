@@ -64,7 +64,7 @@ lex_content(void *vmap,size_t len,const struct dfa *dfa,int *pastheader,int noca
 			}
 			hol = map + off;
 			s = STATE_MATCHING;
-			if(nocase){
+			if(nocase && *pastheader){
 				map[off] = tolower(map[off]);
 			}
 			break;
@@ -79,7 +79,7 @@ lex_content(void *vmap,size_t len,const struct dfa *dfa,int *pastheader,int noca
 					s = STATE_SINK;
 					val = NULL;
 				}
-			}else if(nocase){
+			}else if(nocase && *pastheader){
 				map[off] = tolower(map[off]);
 			}
 			break;
