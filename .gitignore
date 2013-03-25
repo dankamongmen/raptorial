@@ -17,6 +17,8 @@ libtool
 ltmain.sh
 m4
 missing
+rapt-parsechangelog
+rapt-parsechangelog.1
 rapt-show-versions
 rapt-show-versions.1
 raptorial-tester
