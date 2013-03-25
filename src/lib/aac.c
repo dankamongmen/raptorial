@@ -113,17 +113,17 @@ make_delta2(int *delta2, const unsigned char *pat, int32_t patlen) {
 	int p;
 	int last_prefix_index = patlen-1;
 
-	for (p=patlen-1; p>=0; p--) {
-		if (is_prefix(pat, patlen, p+1)) {
-			last_prefix_index = p+1;
+	for(p = patlen - 1 ; p >= 0 ; --p){
+		if(is_prefix(pat, patlen, p+1)){
+			last_prefix_index = p + 1;
 		}
-		delta2[p] = last_prefix_index + (patlen-1 - p);
+		delta2[p] = last_prefix_index + (patlen - 1 - p);
 	}
-	for (p=0; p < patlen-1; p++) {
-		int slen = suffix_length(pat, patlen, p);
+	for(p = 0 ; p < patlen - 1 ; ++p){
+		int slen = suffix_length(pat,patlen,p);
 
-		if (pat[p - slen] != pat[patlen-1 - slen]) {
-			delta2[patlen-1 - slen] = patlen-1 - p + slen;
+		if (pat[p - slen] != pat[patlen - 1 - slen]) {
+			delta2[patlen - 1 - slen] = patlen - 1 - p + slen;
 		}
 	}
 }
