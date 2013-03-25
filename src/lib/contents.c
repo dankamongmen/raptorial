@@ -94,60 +94,6 @@ lex_content(void *vmap,size_t len,const struct dfa *dfa,int *pastheader){
 	return 0;
 }
 
-/*static int
-lex_content_map(void *map,off_t inlen,const struct dfa *dfa){
-	size_t scratchsize;
-	z_stream zstr;
-	void *scratch;
-	int z,ph;
-
-	if(inlen <= 0){
-		return -1;
-	}
-	scratchsize = inlen * 2;
-	if((scratch = malloc(scratchsize)) == NULL){
-		return -1;
-	}
-	memset(&zstr,0,sizeof(zstr));
-	zstr.next_out = scratch;
-	zstr.avail_out = scratchsize;
-	zstr.next_in = map;
-	zstr.avail_in = inlen;
-	zstr.zalloc = alloc2p;
-	zstr.zfree = free1p;
-	zstr.opaque = NULL;
-	if(inflateInit2(&zstr,47) != Z_OK){
-		free(scratch);
-		return -1;
-	}
-	// There's a retarded freeform header at the beginning of each content
-	// file. See http://wiki.debian.org/RepositoryFormat#A.22Contents.22_indices.
-	ph = 1;
-	do{
-		z = inflate(&zstr,Z_NO_FLUSH);
-		if(z != Z_OK && z != Z_STREAM_END){
-			inflateEnd(&zstr);
-			free(scratch);
-			return -1;
-		}
-		if(scratchsize - zstr.avail_out){
-			if(lex_content(scratch,scratchsize - zstr.avail_out,dfa,&ph)){
-				inflateEnd(&zstr);
-				free(scratch);
-				return -1;
-			}
-		}
-		zstr.avail_out = scratchsize;
-		zstr.next_out = scratch;
-	}while(z == Z_OK);
-	if(inflateEnd(&zstr) != Z_OK){
-		free(scratch);
-		return -1;
-	}
-	free(scratch);
-	return 0;
-}*/
-
 // Paralellizing across the directory is of limited utility; compressed file
 // sizes vary by several orders of magnitude. If we can't finish our file
 // ourselves, place the zlib context on a work queue, and let threads fall
@@ -156,7 +102,6 @@ typedef struct workmonad {
 	void *map;
 	size_t len;
 	z_stream zstr;
-	pthread_mutex_t lock;
 	struct workmonad *next;
 } workmonad;
 
@@ -175,22 +120,74 @@ struct dirparse {
 	pthread_mutex_t lock;
 };
 
+static inline void
+enqueue_workmonad(workmonad *wm,struct dirparse *dp){
+	pthread_mutex_lock(&dp->lock);
+		wm->next = dp->queue;
+		dp->queue = wm;
+	pthread_mutex_unlock(&dp->lock);
+	// we'll want to signal the condvar FIXME
+}
+
+static int
+lex_content_map_nextshot(workmonad *wm,struct dirparse *dp){
+	size_t scratchsize;
+	void *scratch;
+	int z,ph;
+
+	scratchsize = wm->zstr.avail_in * 2;
+	if((scratch = malloc(scratchsize)) == NULL){
+		return -1;
+	}
+	wm->zstr.next_out = scratch;
+	wm->zstr.avail_out = scratchsize;
+	z = inflate(&wm->zstr,Z_NO_FLUSH);
+	if(z != Z_OK && z != Z_STREAM_END){
+		inflateEnd(&wm->zstr);
+		free(scratch);
+		return -1;
+	}
+	if(z == Z_OK){ // equivalent to zstr.avail_in == 0, no? FIXME
+		enqueue_workmonad(wm,dp);
+	}
+	ph = 1;
+
+	if(scratchsize - wm->zstr.avail_out){
+		if(lex_content(scratch,scratchsize - wm->zstr.avail_out,dp->dfa,&ph)){
+			// FIXME how to free inflate state at this point?
+			free(scratch);
+			return -1;
+		}
+	}else{
+		fprintf(stderr,"Didn't consume input!\n");
+		assert(0);
+	}
+	if(z == Z_STREAM_END){
+		if(inflateEnd(&wm->zstr) != Z_OK){
+			free(scratch);
+			return -1;
+		}
+		free(scratch);
+		free(wm);
+		return 0;
+	}
+	free(scratch);
+	return 0;
+}
+
 static workmonad *
 create_workmonad(void *map,size_t len,const z_stream *zstr,struct dirparse *dp){
 	workmonad *wm;
 
 	if( (wm = malloc(sizeof(*wm))) ){
-		if(pthread_mutex_init(&wm->lock,NULL)){
+		/*if(pthread_mutex_init(&wm->lock,NULL)){
 			free(wm);
 			return NULL;
-		}
+		}*/
 		memcpy(&wm->zstr,zstr,sizeof(*zstr));
 		wm->len = len;
 		wm->map = map;
-		pthread_mutex_lock(&dp->lock);
-			wm->next = dp->queue;
-			dp->queue = wm;
-		pthread_mutex_unlock(&dp->lock);
+		enqueue_workmonad(wm,dp);
 	}
 	return wm;
 }
@@ -310,12 +307,30 @@ lex_packages_file_internal(const char *path,struct dirparse *dp){
 		}
 	}
 	if(lex_content_map_oneshot(map,st.st_size,dp)){
-		fprintf(stderr,"ONESHOT FAILURE\n");
 		close(fd);
 		return -1;
 	}
 	close(fd);
 	return 0;
+}
+
+static int
+lex_workqueue(struct dirparse *dp){
+	workmonad *wm;
+
+	while(pthread_mutex_lock(&dp->lock) == 0){
+		if( (wm = dp->queue) ){
+			dp->queue = wm->next;
+		}
+		pthread_mutex_unlock(&dp->lock);
+		if(wm == NULL){ // FIXME see notes about early exit
+			return 0;
+		}
+		if(lex_content_map_nextshot(wm,dp)){
+			return -1;
+		}
+	}
+	return -1; // lock got befouled!
 }
 
 static void *
@@ -327,6 +342,9 @@ lex_dir(void *vdp){
 		const char *ext;
 
 		if(pdent == NULL){
+			if(lex_workqueue(dp)){
+				return NULL;
+			}
 			return dp;
 		}
 		if(dent.d_type != DT_REG && dent.d_type != DT_LNK){
@@ -339,7 +357,6 @@ lex_dir(void *vdp){
 			continue;
 		}
 		if(lex_packages_file_internal(dent.d_name,dp)){
-			fprintf(stderr,"ERROR LEXING\n");
 			return NULL;
 		}
 	}
