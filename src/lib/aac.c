@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
+#include <limits.h>
 #include <raptorial.h>
 
 // Do not store pointers to either of these types (edges or dfactx's), as they
@@ -23,12 +24,21 @@ typedef struct dfavtx {
 	void *val; // Match at this node
 } dfavtx;
 
+typedef struct bmgstate {
+	unsigned char *match;	// Sole pattern when patcount == 1
+	void *val;		// Value for bmgmatch pattern
+	size_t len;		// Length of pattern
+	int delta1[1u << (CHAR_BIT - 1)];
+	int *delta2;
+} bmgstate;
+
 // Entrypoint of the automaton is always vtxarray[0]
 typedef struct dfa {
 	dfavtx *vtxarray;	// Dynamic array of dfavtxs
 	unsigned vtxcount,vtxalloc;
 	unsigned patcount;	// Number of patterns in the dfa
 	ptrdiff_t longest;	// Longest pattern in the dfa + 1
+	bmgstate bmg;		// FIXME do this more elegantly if possible
 } dfa;
 
 PUBLIC void
@@ -78,6 +88,28 @@ edge_search(const dfavtx *node,int s){
 	return pos;
 }
 
+static int
+bmgprepare(bmgstate *bmg,const char *str,void *val){
+	unsigned z;
+
+	if((bmg->match = (unsigned char *)strdup(str)) == NULL){
+		return -1;
+	}
+	bmg->len = strlen(str);
+	if((bmg->delta2 = malloc(bmg->len * sizeof(*bmg->delta2))) == NULL){
+		free(bmg->match);
+		return -1;
+	}
+	bmg->val = val;
+	for(z = 0 ; z < 1u << (CHAR_BIT - 1) ; ++z){
+		bmg->delta1[z] = bmg->len;
+	}
+	for(z = 0 ; z < bmg->len - 1 ; ++z){
+		bmg->delta1[bmg->match[z]] = bmg->len - 1 - z;
+	}
+	return 0;
+}
+
 PUBLIC int
 augment_dfa(dfa **space,const char *str,void *val){
 	const char *s;
@@ -98,6 +130,7 @@ augment_dfa(dfa **space,const char *str,void *val){
 		(*space)->vtxarray[0].setsize = 0;
 		(*space)->vtxarray[0].set = NULL;
 		(*space)->vtxarray[0].val = NULL;
+		(*space)->bmg.match = NULL;
 		(*space)->patcount = 0;
 		(*space)->vtxcount = 1;
 		(*space)->longest = 1;
@@ -152,7 +185,12 @@ augment_dfa(dfa **space,const char *str,void *val){
 	if(s - str > (*space)->longest){
 		(*space)->longest = s - str;
 	}
-	++(*space)->patcount;
+	if(++(*space)->patcount == 1){
+		bmgprepare(&(*space)->bmg,str,val);
+	}else if((*space)->bmg.match){
+		free((*space)->bmg.match);
+		(*space)->bmg.match = NULL;
+	}
 	cur->val = val;
 	return 0;
 }
@@ -196,9 +234,118 @@ void *match_dfactx_nstring(dfactx *dctx,const char *s,size_t len){
 	return dctx->dfa->vtxarray[dctx->cur].val;
 }
 
+#define NOT_FOUND patlen
+#define max(a, b) ((a < b) ? b : a)
+ 
+// true if the suffix of word starting from word[pos] is a prefix 
+// of word
+int is_prefix(const uint8_t *word, int wordlen, int pos) {
+	int i;
+	int suffixlen = wordlen - pos;
+	// could also use the strncmp() library function here
+	for (i = 0; i < suffixlen; i++) {
+		if (word[i] != word[pos+i]) {
+			return 0;
+		}
+	}
+	return 1;
+}
+ 
+// length of the longest suffix of word ending on word[pos].
+// suffix_length("dddbcabc", 8, 4) = 2
+int suffix_length(const uint8_t *word, int wordlen, int pos) {
+	int i;
+	// increment suffix length i to the first mismatch or beginning
+	// of the word
+	for (i = 0; (word[pos-i] == word[wordlen-1-i]) && (i < pos); i++);
+	return i;
+}
+ 
+// delta2 table: given a mismatch at pat[pos], we want to align 
+// with the next possible full match could be based on what we
+// know about pat[pos+1] to pat[patlen-1].
+//
+// In case 1:
+// pat[pos+1] to pat[patlen-1] does not occur elsewhere in pat,
+// the next plausible match starts at or after the mismatch.
+// If, within the substring pat[pos+1 .. patlen-1], lies a prefix
+// of pat, the next plausible match is here (if there are multiple
+// prefixes in the substring, pick the longest). Otherwise, the
+// next plausible match starts past the character aligned with 
+// pat[patlen-1].
+// 
+// In case 2:
+// pat[pos+1] to pat[patlen-1] does occur elsewhere in pat. The
+// mismatch tells us that we are not looking at the end of a match.
+// We may, however, be looking at the middle of a match.
+// 
+// The first loop, which takes care of case 1, is analogous to
+// the KMP table, adapted for a 'backwards' scan order with the
+// additional restriction that the substrings it considers as 
+// potential prefixes are all suffixes. In the worst case scenario
+// pat consists of the same letter repeated, so every suffix is
+// a prefix. This loop alone is not sufficient, however:
+// Suppose that pat is "ABYXCDEYX", and text is ".....ABYXCDEYX".
+// We will match X, Y, and find B != E. There is no prefix of pat
+// in the suffix "YX", so the first loop tells us to skip forward
+// by 9 characters.
+// Although superficially similar to the KMP table, the KMP table
+// relies on information about the beginning of the partial match
+// that the BM algorithm does not have.
+//
+// The second loop addresses case 2. Since suffix_length may not be
+// unique, we want to take the minimum value, which will tell us
+// how far away the closest potential match is.
+void make_delta2(int *delta2, const unsigned char *pat, int32_t patlen) {
+    int p;
+    int last_prefix_index = patlen-1;
+ 
+    // first loop
+    for (p=patlen-1; p>=0; p--) {
+        if (is_prefix(pat, patlen, p+1)) {
+            last_prefix_index = p+1;
+        }
+        delta2[p] = last_prefix_index + (patlen-1 - p);
+    }
+ 
+    // second loop
+    for (p=0; p < patlen-1; p++) {
+        int slen = suffix_length(pat, patlen, p);
+        if (pat[p - slen] != pat[patlen-1 - slen]) {
+            delta2[patlen-1 - slen] = patlen-1 - p + slen;
+        }
+    }
+}
+
+int bmg_against_nstring(const unsigned char *s,size_t len,const bmgstate *bmg){
+	size_t i;
+	make_delta2(bmg->delta2, bmg->match, bmg->len);
+
+	i = bmg->len - 1;
+	while (i < len) {
+		int j = bmg->len - 1;
+		while (j >= 0 && (s[i] == bmg->match[j])) {
+			--i;
+			--j;
+		}
+		if (j < 0) {
+			return 1;
+		}
+
+		i += max(bmg->delta1[s[i]],bmg->delta2[j]);
+	}
+	return 0;
+}
+
 // FIXME now that apt-file is matching against blocks of text, we need follow
 // the sigma function on the edge-not-found case
 void *match_dfactx_against_nstring(dfactx *dctx,const char *s,size_t len){
+	if(dctx->dfa->bmg.match){
+		if(bmg_against_nstring((const unsigned char *)s,len,&dctx->dfa->bmg)){
+			return dctx->dfa->bmg.val;
+		}
+		return NULL;
+	}
 	while(len--){
 		unsigned pos;
 
