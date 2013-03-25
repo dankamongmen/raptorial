@@ -59,7 +59,7 @@ int main(int argc,char **argv){
 		usage(argv[0],EXIT_FAILURE);
 	}
 	if((cl = lex_changelog(clog,&err)) == NULL){
-		fprintf(stderr,"Error lexing changelog "%s" (%s?)\n",
+		fprintf(stderr,"Error lexing changelog \"%s\" (%s?)\n",
 				clog,strerror(errno));
 		return EXIT_FAILURE;
 	}
