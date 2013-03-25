@@ -38,6 +38,13 @@ int main(int argc,char **argv){
 		switch(c){
 		case 'a':
 		case 'c':
+			if(cdir){
+				fprintf(stderr,"Provided -c/--cache twice, exiting\n");
+				usage(argv[0],EXIT_FAILURE);
+				break;
+			}
+			cdir = argv[optind];
+			break;
 		case 'd':
 		case 'D':
 		case 'f':
@@ -57,7 +64,9 @@ int main(int argc,char **argv){
 		}
 	}
 	dfa = NULL;
-	cdir = raptorial_def_content_dir();
+	if(!cdir){
+		cdir = raptorial_def_content_dir();
+	}
 	if(argv[optind] == NULL){
 		fprintf(stderr,"Didn't provide any search terms!\n");
 		usage(argv[0],EXIT_FAILURE);
