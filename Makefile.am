@@ -27,11 +27,12 @@ check_PROGRAMS=raptorial-tester
 
 include_HEADERS=src/lib/raptorial.h
 
-noinst_HEADERS=src/lib/aac.h
+noinst_HEADERS=src/lib/aac.h src/lib/util.h
 
 lib_LTLIBRARIES = libraptorial.la
 libraptorial_la_SOURCES = src/lib/packages.c src/lib/paths.c src/lib/aac.c \
-	src/lib/versioncmp.c src/lib/contents.c src/lib/changelog.c
+	src/lib/versioncmp.c src/lib/contents.c src/lib/changelog.c \
+	src/lib/util.c
 
 raptorial_tester_SOURCES = src/tester/main.c
 raptorial_tester_LDADD = libraptorial.la

@@ -1,6 +1,8 @@
 #include <stdio.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <config.h>
+#include <string.h>
 #include <getopt.h>
 #include <raptorial.h>
 
@@ -25,7 +27,8 @@ int main(int argc,char **argv){
                 { NULL, 0, NULL, 0 }
         };
 	const char *clog = NULL;
-	int c;
+	struct changelog *cl;
+	int c,err;
 
 	while((c = getopt_long(argc,argv,"hl:F:",longopts,&optind)) != -1){
 		switch(c){
@@ -55,5 +58,11 @@ int main(int argc,char **argv){
 	if(argv[optind]){
 		usage(argv[0],EXIT_FAILURE);
 	}
+	if((cl = lex_changelog(clog,&err)) == NULL){
+		fprintf(stderr,"Error lexing changelog "%s" (%s?)\n",
+				clog,strerror(errno));
+		return EXIT_FAILURE;
+	}
+	// FIXME do stuff...
 	return EXIT_SUCCESS;
 }

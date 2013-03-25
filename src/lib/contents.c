@@ -1,5 +1,6 @@
 #include <aac.h>
 #include <zlib.h>
+#include <util.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -261,17 +262,12 @@ lex_content_map_oneshot(void *map,off_t inlen,struct dirparse *dp,
 static int
 lex_packages_file_internal(const char *path,struct dirparse *dp,void *infbuf,
 						size_t buflen){
-	size_t mlen,len;
 	struct stat st;
+	size_t mlen;
 	void *map;
-	int fd,pg;
+	int fd;
 
 	if(path == NULL){
-		return -1;
-	}
-	// Probably ought get the largest page size; this will be the smallest
-	// on all platforms of which I'm aware. FIXME
-	if((pg = sysconf(_SC_PAGE_SIZE)) <= 0){
 		return -1;
 	}
 	if((fd = open(path,O_CLOEXEC)) < 0){
@@ -281,9 +277,9 @@ lex_packages_file_internal(const char *path,struct dirparse *dp,void *infbuf,
 		close(fd);
 		return -1;
 	}
-	mlen = len = st.st_size;
-	if(mlen % pg != mlen / pg){
-		mlen = (mlen / pg) * pg + pg;
+	if((mlen = maplen(st.st_size)) == (size_t)-1){
+		close(fd);
+		return -1;
 	}
 	if((map = mmap(NULL,mlen,PROT_READ,MAP_SHARED|MAP_HUGETLB|MAP_POPULATE,fd,0)) == MAP_FAILED){
 		if(errno != EINVAL){

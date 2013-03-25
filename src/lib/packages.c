@@ -1,4 +1,5 @@
 #include <aac.h>
+#include <util.h>
 #include <ctype.h>
 #include <errno.h>
 #include <stdio.h>
@@ -476,19 +477,13 @@ static pkglist *
 lex_packages_file_internal(const char *path,int *err,int statusfile,
 						struct dfa **dfa){
 	const void *map;
-	size_t mlen,len;
 	struct stat st;
+	size_t mlen;
 	pkglist *pl;
-	int fd,pg;
+	int fd;
 
 	if(path == NULL){
 		*err = EINVAL;
-		return NULL;
-	}
-	// Probably ought get the largest page size; this will be the smallest
-	// on all platforms of which I'm aware. FIXME
-	if((pg = sysconf(_SC_PAGE_SIZE)) <= 0){
-		*err = errno;
 		return NULL;
 	}
 	if((fd = open(path,O_CLOEXEC)) < 0){
@@ -500,9 +495,10 @@ lex_packages_file_internal(const char *path,int *err,int statusfile,
 		close(fd);
 		return NULL;
 	}
-	mlen = len = st.st_size;
-	if(mlen % pg != mlen / pg){
-		mlen = (mlen / pg) * pg + pg;
+	if((mlen = maplen(st.st_size)) == (size_t)-1){
+		*err = errno;
+		close(fd);
+		return NULL;
 	}
 	if((map = mmap(NULL,mlen,PROT_READ,MAP_SHARED|MAP_HUGETLB|MAP_POPULATE,fd,0)) == MAP_FAILED){
 		if(errno != EINVAL){
@@ -517,7 +513,7 @@ lex_packages_file_internal(const char *path,int *err,int statusfile,
 			return NULL;
 		}
 	}
-	if((pl = create_pkglist(map,len,err,statusfile,dfa)) == NULL){
+	if((pl = create_pkglist(map,st.st_size,err,statusfile,dfa)) == NULL){
 		close(fd);
 		return NULL;
 	}

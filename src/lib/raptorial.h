@@ -34,6 +34,7 @@ struct dfactx;
 struct pkgobj;
 struct pkglist;
 struct pkgcache;
+struct changelog;
 
 // Returns a new package list object after lexing the specified package list.
 // On error, NULL is returned, and the error value will be written through; it
@@ -176,6 +177,9 @@ pkgobj_dist(const struct pkgobj *);
 
 PUBLIC int
 debcmp(const char *,const char *);
+
+PUBLIC struct changelog *
+lex_changelog(const char *,int *);
 
 #ifdef __cplusplus
 }
