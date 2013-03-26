@@ -21,6 +21,9 @@ doc_DATA+=README.md
 dist_doc_DATA=
 dist_doc_DATA+=COPYING libraptorial.xhtml
 
+pkgconfigdir=${libdir}/pkgconfig
+nodist_pkgconfig_DATA=libraptorial.pc
+
 bin_PROGRAMS=rapt-show-versions raptorial-file rapt-parsechangelog
 
 check_PROGRAMS=raptorial-tester
@@ -49,6 +52,16 @@ rapt_parsechangelog_LDADD = libraptorial.la
 check: $(srcdir)/tests/Packages $(bin_PROGRAMS)
 	./raptorial-tester $(srcdir)/tests/Packages
 
+%.pc: %.pc.in configure.ac
+	sed -e 's@#PREFIX#@${prefix}@' \
+		-e 's@#LIBDIR#@${libdir}@' \
+		-e 's@#VERSION#@${VERSION}@' \
+		-e 's@#INCLUDEDIR#@${includedir}@' \
+		-e 's@#EXEC_PREFIX#@${exec_prefix}@' \
+		-e 's@#RAPTORIAL_CFLAGS#@${RAPTORAL_CFLAGS}@' \
+		-e 's@#RAPTORIAL_REQUIRES#@${RAPTORAL_REQUIRES}@' \
+		< $< > $@
+
 %.1: $(doc_DIR)/man/man1/%.xml $(doc_DIR)/@PACKAGE_NAME@.ent
 	$(XSLTPROC) --path $(doc_DIR) -o $@ --nonet /usr/share/xml/docbook/stylesheet/docbook-xsl/manpages/docbook.xsl $<
 
@@ -63,7 +76,7 @@ $(doc_DIR)/@PACKAGE_NAME@.ent:
 	echo -e '<!ENTITY dhfirstname "Nick">\n<!ENTITY dhsurname "Black">\n<!ENTITY dhemail "nick.black@sprezzatech.com">\n<!ENTITY dhusername "&dhfirstname; &dhsurname;">\n<!ENTITY dhrelease "$(VERSION)">' > "$@"
 
 clean-local:
-	rm -rf $(MANS) $(doc_DIR)/@PACKAGE_NAME@.ent
+	rm -rf $(MANS) $(doc_DIR)/@PACKAGE_NAME@.ent ${nodist_pkgconfig_DATA}
 
 uninstall-local:
 	rmdir "$(DESTDIR)$(docdir)"

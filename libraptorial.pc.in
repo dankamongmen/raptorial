@@ -1,0 +1,12 @@
+prefix=#PREFIX#
+exec_prefix=#EXEC_PREFIX#
+libdir=#LIBDIR#
+includedir=#INCLUDEDIR#
+
+Name: raptorial
+Description: Parallelized APT
+Version: #VERSION#
+
+Requires: #RAPTORIAL_REQUIRES#
+Libs: -L${libdir}
+Cflags: #RAPTORIAL_CFLAGS# -I${includedir}/compiz
