@@ -46,3 +46,4 @@ src/tester/.dirstamp
 src/tester/*.o
 stamp-h1
 tags
+libraptorial.pc
