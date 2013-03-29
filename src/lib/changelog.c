@@ -89,7 +89,7 @@ lex_changelog_map(const char *map,size_t len){
 				break;
 			}
 			if(!isdebpkgchar(map[pos])){
-				fprintf(stderr,"Expected package\n");
+				fprintf(stderr,"Expected package, got %.*s\n",(int)(len - pos),map + pos);
 				goto err;
 			}
 			++slen;
@@ -104,6 +104,17 @@ lex_changelog_map(const char *map,size_t len){
 				vlen = 0;
 				break;
 			}
+			// Horrible special case on the error path; we must check
+			// for emacs crap at the bottom of the file. See
+			// http://people.debian.org/~jaldhar/make_package4.html
+			// Used last time I checked in at least junit :/
+			if(strcmp(cl->source,"Local") == 0 && len - pos >= strlen("variables:")){
+				if(memcmp(&map[pos],"variables:",strlen("variables:")) == 0){
+					free_changelog(cl);
+					return head;
+				}
+			}
+			fprintf(stderr,"Expected '(', got %.*s\n",(int)(len - pos),map + pos);
 			goto err;
 			break;
 		case STATE_VERSION:
@@ -115,7 +126,7 @@ lex_changelog_map(const char *map,size_t len){
 				break;
 			}
 			if(!isdebverchar(map[pos])){
-				fprintf(stderr,"Expected version\n");
+				fprintf(stderr,"Expected version, got %.*s\n",(int)(len - pos),map + pos);
 				goto err;
 			}
 			++vlen;
@@ -202,6 +213,7 @@ lex_changelog_map(const char *map,size_t len){
 					goto err;
 				}
 			}else if(map[pos] == '\n'){
+				fprintf(stderr,"Expected maintainer, got %.*s\n",(int)(len - pos),map + pos);
 				goto err;
 			}else{
 				++mlen;
