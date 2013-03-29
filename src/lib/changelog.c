@@ -128,13 +128,13 @@ lex_changelog_map(const char *map,size_t len){
 			dist = &map[pos];
 			dlen = 0;
 			// intentional fallthrough
-		case STATE_DIST:
-			if(isspace(map[pos]) || map[pos] == ';'){
+		case STATE_DIST: // There can be more than one! (e.g. "frozen unstable")
+			if(map[pos] == ';'){
 				if((cl->dist = strndup(dist,dlen)) == NULL){
 					goto err;
 				}
 				state = STATE_DISTDELIM;
-			}else if(!isdebdistchar(map[pos])){
+			}else if(!isblank(map[pos]) && !isdebdistchar(map[pos])){
 				fprintf(stderr,"Expected distribution, got %.*s\n",(int)(len - pos),map + pos);
 				goto err;
 			}else{
@@ -147,7 +147,7 @@ lex_changelog_map(const char *map,size_t len){
 				break;
 			}
 			if(map[pos] != ';'){
-				fprintf(stderr,"Expected ';'\n");
+				fprintf(stderr,"Expected ';', got %.*s\n",(int)(len - pos),map + pos);
 				goto err;
 			}
 			state = STATE_URGENCY;
