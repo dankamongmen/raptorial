@@ -39,6 +39,7 @@ static changelog *
 lex_changelog_map(const char *map,size_t len){
 	enum {
 		STATE_RESET,
+		STATE_COMMENT,
 		STATE_SOURCE,
 		STATE_VERSION_LPAREN,
 		STATE_VERSION,
@@ -82,6 +83,11 @@ lex_changelog_map(const char *map,size_t len){
 			slen = 0;
 			// intentional fallthrough
 		case STATE_SOURCE:
+			// mime-support has an example of comments
+			if(map[pos] == '#'){
+				state = STATE_COMMENT;
+				break;
+			}
 			if(isspace(map[pos])){
 				if((cl->source = strndup(source,slen)) == NULL){
 					goto err;
@@ -94,6 +100,13 @@ lex_changelog_map(const char *map,size_t len){
 				goto err;
 			}
 			++slen;
+			break;
+		case STATE_COMMENT:
+			if(map[pos] == '\n'){
+				state = STATE_SOURCE;
+				changes = &map[pos];
+				source = &map[pos];
+			}
 			break;
 		case STATE_VERSION_LPAREN:
 			if(isspace(map[pos])){
@@ -140,6 +153,13 @@ lex_changelog_map(const char *map,size_t len){
 					goto err;
 				}
 				state = STATE_DISTDELIM;
+			}else if(map[pos] == '\n'){
+				// See dpkg's changelog for examples without semicolon (e.g. "ALPHA")
+				if((cl->dist = strndup(dist,dlen)) == NULL){
+					goto err;
+				}
+				state = STATE_CHANGES;
+				break;
 			}else if(!isblank(map[pos]) && !isdebdistchar(map[pos])){
 				fprintf(stderr,"Expected distribution, got %.*s\n",(int)(len - pos),map + pos);
 				goto err;
@@ -151,8 +171,7 @@ lex_changelog_map(const char *map,size_t len){
 		case STATE_DISTDELIM:
 			if(isspace(map[pos])){
 				break;
-			}
-			if(map[pos] != ';'){
+			}else if(map[pos] != ';'){
 				fprintf(stderr,"Expected ';', got %.*s\n",(int)(len - pos),map + pos);
 				goto err;
 			}
