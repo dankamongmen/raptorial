@@ -10,7 +10,7 @@ void *mapit(const char *,size_t *,int *,int,int *);
 
 static inline int
 isdebpkgchar(int c){
-	return isalnum(c) || c == '-';
+	return isalnum(c) || c == '-' || c == '.';
 }
 
 static inline int
