@@ -18,26 +18,25 @@ resources, whether they be disks or CPUs. It makes no use of on-disk cached
 representations of its primary datastore: all data is present exactly one time
 in the filesystem. It requires no tmpfiles, and indeed never writes to disk.
 
-Components include, or will include:
+Components include:
 
 * libraptorial. A redesigned interface around APT facilitating rich,
 	high-performance client applications.
 * rapt-show-versions. A drop-in, high-performance replacement for
 	apt-show-versions, making use of libraptorial.
+* raptorial-file. A drop-in, high-performance replacement for apt-file,
+	making use of libraptorial.
+* rapt-parsechangelog: A drop-in, high-performance replacement for
+	dpkg-parsechangelog, making use of libraptorial.
+
+I might possibly add:
+
 * librapt. A drop-in, high-performance replacement for libapt, implemented
 	as a wrapper around libraptorial.
 * rapt-get. A drop-in, high-performance replacement for apt-get, making use
 	of libraptorial.
-* raptorial-file. A drop-in, high-performance replacement for apt-file,
-	making use of libraptorial.
 * raptitude. An ncurses-based package manager, similar in spirit to (but not
 	a drop-in replacement for) aptitude.
-
-It will also be possible to compile and link tools such as apt-get and aptitude
-against librapt (and indeed this is regularly done to test compatibility). The
-maximum performance, however, will be seen by using raptorial-native tools such
-as rapt-get and raptorial-file, since certain design choices in libapt do not
-allow robust, safe, high-performance operation.
 
 # Requirements
 
