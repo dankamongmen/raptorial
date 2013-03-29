@@ -35,8 +35,8 @@ free_changelog(changelog *cl){
 	}
 }
 
-static int
-lex_changelog_map(changelog *cl,const char *map,size_t len){
+static changelog *
+lex_changelog_map(const char *map,size_t len){
 	enum {
 		STATE_RESET,
 		STATE_SOURCE,
@@ -48,22 +48,32 @@ lex_changelog_map(changelog *cl,const char *map,size_t len){
 		STATE_URGENCY,
 		STATE_URGDELIM,
 		STATE_CHANGES,
+		STATE_MAINT,
+		STATE_DATE,
 	} state = STATE_RESET;
-	const char *source,*version,*dist,*urg;
-	size_t pos,slen,vlen,dlen,ulen;
+	const char *source,*version,*dist,*urg,*maint;
+	size_t pos,slen,vlen,dlen,ulen,mlen;
+	changelog *cl,**enq,*head;
 
 	source = NULL; slen = 0;
 	version = NULL; vlen = 0;
 	dist = NULL; dlen = 0;
 	urg = NULL; ulen = 0;
+	maint = NULL; mlen = 0;
 
-	memset(cl,0,sizeof(*cl));
+	cl = NULL;
+	head = NULL;
+	enq = &head;
 	for(pos = 0 ; pos < len ; ++pos){
 	switch(state){
 		case STATE_RESET:
 			if(isspace(map[pos])){
 				break;
 			}
+			if((cl = malloc(sizeof(*cl))) == NULL){
+				goto err;
+			}
+			memset(cl,0,sizeof(*cl));
 			state = STATE_SOURCE;
 			source = &map[pos];
 			slen = 0;
@@ -146,14 +156,14 @@ lex_changelog_map(changelog *cl,const char *map,size_t len){
 			if(memcmp(map + pos,"urgency=",strlen("urgency="))){
 				goto err;
 			}
-			pos += strlen("urgency");
+			pos += strlen("urgency=");
 			state = STATE_URGDELIM;
-			urg = &map[pos + 1];
+			urg = &map[pos];
 			ulen = 0;
 			// intentional fallthrough
 		case STATE_URGDELIM:
 			if(isspace(map[pos])){
-				// check for validity FIXME
+				// check urgency for validity FIXME
 				if((cl->urg = strndup(urg,ulen)) == NULL){
 					goto err;
 				}
@@ -164,17 +174,53 @@ lex_changelog_map(changelog *cl,const char *map,size_t len){
 			break;
 		case STATE_CHANGES:
 			if(map[pos] == '\n'){
+				if(len - pos >= 5){
+					if(memcmp(&map[pos + 1]," -- ",4) == 0){
+						state = STATE_MAINT;
+						pos += 5;
+						maint = &map[pos];
+						mlen = 0;
+					}
+				}
+			}
+			break;
+		case STATE_MAINT:
+			if(map[pos] == '>'){ // FIXME do better checking
+				state = STATE_DATE;
+				if((cl->maintainer = strndup(maint,mlen + 2)) == NULL){
+					goto err;
+				}
+			}else if(map[pos] == '\n'){
+				goto err;
+			}else{
+				++mlen;
+			}
+			break;
+		case STATE_DATE:
+			if(isspace(map[pos])){
+				if(maint + mlen + 2 == &map[pos]){
+					++mlen;
+				}else if(map[pos] == '\n'){
+					if((cl->date = strndup(maint + mlen + 2,pos - (maint - map) - mlen - 2)) == NULL){
+						goto err;
+					}
+					state = STATE_RESET;
+					*enq = cl;
+					enq = &cl->next;
+					cl = NULL;
+				}
 			}
 			break;
 		default:
 			goto err;
 	}
 	}
-	return 0;
+	return head;
 
 err:
+	free_changelog(head);
 	free_changelog(cl);
-	return -1;
+	return NULL;
 }
 
 changelog *lex_changelog(const char *fn,int *err){
@@ -183,15 +229,10 @@ changelog *lex_changelog(const char *fn,int *err){
 	void *map;
 	int fd;
 
-	if((cl = malloc(sizeof(*cl))) == NULL){
-		*err = errno;
-		return NULL;
-	}
 	if((map = mapit(fn,&len,&fd,0,err)) == MAP_FAILED){
-		free_changelog(cl);
 		return NULL;
 	}
-	if(lex_changelog_map(cl,map,len)){
+	if((cl = lex_changelog_map(map,len)) == NULL){
 		close(fd);
 		return NULL;
 	}
