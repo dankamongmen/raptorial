@@ -44,10 +44,11 @@ lex_changelog_map(changelog *cl,const char *map,size_t len){
 		STATE_VERSION,
 		STATE_VERSION_RPAREN,
 	} state = STATE_RESET;
-	const char *source;
-	size_t pos,slen;
+	const char *source,*version;
+	size_t pos,slen,vlen;
 
 	source = NULL; slen = 0;
+	version = NULL; vlen = 0;
 
 	memset(cl,0,sizeof(*cl));
 	for(pos = 0 ; pos < len ; ++pos){
@@ -74,6 +75,32 @@ lex_changelog_map(changelog *cl,const char *map,size_t len){
 			++slen;
 			break;
 		case STATE_VERSION_LPAREN:
+			if(isspace(map[pos])){
+				break;
+			}
+			if(map[pos] == '('){
+				state = STATE_VERSION;
+				version = &map[pos + 1];
+				vlen = 0;
+				break;
+			}
+			goto err;
+			break;
+		case STATE_VERSION:
+			if(map[pos] == ')'){
+				if((cl->version = strndup(version,vlen)) == NULL){
+					goto err;
+				}
+				state = STATE_VERSION_RPAREN;
+				break;
+			}
+			if(!isdebverchar(map[pos])){
+				goto err;
+			}
+			++vlen;
+			break;
+		case STATE_VERSION_RPAREN:
+			// FIXME
 			break;
 		default:
 			goto err;
