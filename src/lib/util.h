@@ -20,7 +20,7 @@ isdebverchar(int c){
 
 static inline int
 isdebdistchar(int c){
-	return isalpha(c);
+	return isalpha(c) || c == '-';
 }
 
 #endif
