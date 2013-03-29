@@ -13,4 +13,9 @@ isdebpkgchar(int c){
 	return isalnum(c) || c == '-';
 }
 
+static inline int
+isdebverchar(int c){
+	return isalnum(c) || c == '-' || c == '+' || c == '.' || c == ':' || c == '~';
+}
+
 #endif
