@@ -47,6 +47,7 @@ lex_changelog_map(const char *map,size_t len){
 		STATE_DISTDELIM,
 		STATE_URGENCY,
 		STATE_URGDELIM,
+		STATE_URGLINE,
 		STATE_CHANGES,
 		STATE_MAINT,
 		STATE_DATE,
@@ -162,14 +163,22 @@ lex_changelog_map(const char *map,size_t len){
 				break;
 			}
 			if(len - pos < strlen("urgency=")){
-				fprintf(stderr,"Expected 'urgency='\n");
+				fprintf(stderr,"Expected 'urgency=', got %.*s\n",(int)(len - pos),map + pos);
 				goto err;
 			}
 			if(memcmp(map + pos,"urgency=",strlen("urgency="))){
-				fprintf(stderr,"Expected 'urgency='\n");
-				goto err;
+				if(len - pos < strlen("priority=")){
+					fprintf(stderr,"Expected 'urgency=', got %.*s\n",(int)(len - pos),map + pos);
+					goto err;
+				}
+				if(memcmp(map + pos,"priority=",strlen("priority="))){
+					fprintf(stderr,"Expected 'urgency=', got %.*s\n",(int)(len - pos),map + pos);
+					goto err;
+				}
+				pos += strlen("priority=");
+			}else{
+				pos += strlen("urgency=");
 			}
-			pos += strlen("urgency=");
 			state = STATE_URGDELIM;
 			urg = &map[pos];
 			ulen = 0;
@@ -180,10 +189,17 @@ lex_changelog_map(const char *map,size_t len){
 				if((cl->urg = strndup(urg,ulen)) == NULL){
 					goto err;
 				}
-				state = STATE_CHANGES;
+				state = STATE_URGLINE;
 				break;
 			}
 			++ulen;
+			break;
+		case STATE_URGLINE:
+			// There can be various crap following the urgency (see dpkg's changelog)
+			if(map[pos] == '\n'){
+				state = STATE_CHANGES;
+				break;
+			}
 			break;
 		case STATE_CHANGES:
 			if(map[pos] == '\n'){
