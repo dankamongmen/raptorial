@@ -63,6 +63,16 @@ int main(int argc,char **argv){
 				clog,strerror(errno));
 		return EXIT_FAILURE;
 	}
-	// FIXME do stuff...
+	if(printf("Source: %s\nVersion: %s\nDistribution: %s\nUrgency: %s\n"
+				"Maintainer: %s\nDate: %s\nChanges:\n%s\n",
+				changelog_getsource(cl),
+				changelog_getversion(cl),
+				changelog_getdist(cl),
+				changelog_geturg(cl),
+				changelog_getmaintainer(cl),
+				changelog_getdate(cl),
+				changelog_getchanges(cl)) < 0){
+		return EXIT_FAILURE;
+	}
 	return EXIT_SUCCESS;
 }

@@ -181,6 +181,27 @@ debcmp(const char *,const char *);
 PUBLIC struct changelog *
 lex_changelog(const char *,int *);
 
+PUBLIC const char *
+changelog_getsource(const struct changelog *);
+
+PUBLIC const char *
+changelog_getversion(const struct changelog *);
+
+PUBLIC const char *
+changelog_getdist(const struct changelog *);
+
+PUBLIC const char *
+changelog_geturg(const struct changelog *);
+
+PUBLIC const char *
+changelog_getmaintainer(const struct changelog *);
+
+PUBLIC const char *
+changelog_getdate(const struct changelog *);
+
+PUBLIC const char *
+changelog_getchanges(const struct changelog *);
+
 #ifdef __cplusplus
 }
 #endif
