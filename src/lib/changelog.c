@@ -51,7 +51,7 @@ lex_changelog_map(const char *map,size_t len){
 		STATE_MAINT,
 		STATE_DATE,
 	} state = STATE_RESET;
-	const char *source,*version,*dist,*urg,*maint;
+	const char *source,*version,*dist,*urg,*maint,*changes;
 	size_t pos,slen,vlen,dlen,ulen,mlen;
 	changelog *cl,**enq,*head;
 
@@ -60,6 +60,7 @@ lex_changelog_map(const char *map,size_t len){
 	dist = NULL; dlen = 0;
 	urg = NULL; ulen = 0;
 	maint = NULL; mlen = 0;
+	changes = NULL;
 
 	cl = NULL;
 	head = NULL;
@@ -75,6 +76,7 @@ lex_changelog_map(const char *map,size_t len){
 			}
 			memset(cl,0,sizeof(*cl));
 			state = STATE_SOURCE;
+			changes = &map[pos];
 			source = &map[pos];
 			slen = 0;
 			// intentional fallthrough
@@ -202,6 +204,9 @@ lex_changelog_map(const char *map,size_t len){
 					++mlen;
 				}else if(map[pos] == '\n'){
 					if((cl->date = strndup(maint + mlen + 2,pos - (maint - map) - mlen - 2)) == NULL){
+						goto err;
+					}
+					if((cl->text = strndup(changes,(maint - 4 - map) - (changes - map))) == NULL){
 						goto err;
 					}
 					state = STATE_RESET;
