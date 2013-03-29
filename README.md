@@ -102,6 +102,11 @@ plans to do so currently.
   text against the search terms for any presence. to require a full match,
   use '^term$'.
 
+## rapt-parsechangelog (1) vs dpkg-parsechangelog
+
+* the -L and -F options (alternative parsers) are not currently supported,
+  and probably won't be.
+
 # Design
 
 ## Threading
