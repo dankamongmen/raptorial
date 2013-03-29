@@ -18,4 +18,9 @@ isdebverchar(int c){
 	return isalnum(c) || c == '-' || c == '+' || c == '.' || c == ':' || c == '~';
 }
 
+static inline int
+isdebdistchar(int c){
+	return isalpha(c);
+}
+
 #endif
