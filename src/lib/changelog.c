@@ -1,59 +1,89 @@
 #include <util.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <raptorial.h>
 
-typedef struct clentry {
+typedef struct changelog {
+	char *source;		// source package
 	char *version;		// most recent
 	char *urg,*dist;
 	char *date;
 	char *maintainer;
 	char *text;
-	struct clentry *next;	// older
-} clentry;
-
-typedef struct changelog {
-	char *source;		// source package
-	clentry *entries;
+	struct changelog *next;	// older
 } changelog;
 
 static void
 free_changelog(changelog *cl){
-	if(cl){
-		clentry *cle;
+	while(cl){
+		changelog *tmp = cl->next;
 
-		while( (cle = cl->entries) ){
-			cl->entries = cle->next;
-			free(cle->maintainer);
-			free(cle->version);
-			free(cle->text);
-			free(cle->dist);
-			free(cle->date);
-			free(cle->urg);
-			free(cle);
-		}
+		free(cl->maintainer);
+		free(cl->version);
 		free(cl->source);
+		free(cl->text);
+		free(cl->dist);
+		free(cl->date);
+		free(cl->urg);
 		free(cl);
+		cl = tmp;
 	}
 }
 
 static int
 lex_changelog_map(changelog *cl,const char *map,size_t len){
-	/*enum {
-		STATE_RESET
-	} state = STATE_RESET;*/
-	size_t pos;
+	enum {
+		STATE_RESET,
+		STATE_SOURCE,
+		STATE_VERSION_LPAREN,
+		STATE_VERSION,
+		STATE_VERSION_RPAREN,
+	} state = STATE_RESET;
+	const char *source;
+	size_t pos,slen;
+
+	source = NULL; slen = 0;
 
 	memset(cl,0,sizeof(*cl));
 	for(pos = 0 ; pos < len ; ++pos){
-		switch(map[pos]){
-		}
+	switch(state){
+		case STATE_RESET:
+			if(isspace(map[pos])){
+				break;
+			}
+			state = STATE_SOURCE;
+			source = &map[pos];
+			slen = 0;
+			// intentional fallthrough
+		case STATE_SOURCE:
+			if(isspace(map[pos])){
+				if((cl->source = strndup(source,slen)) == NULL){
+					goto err;
+				}
+				state = STATE_VERSION_LPAREN;
+				break;
+			}
+			if(!isdebpkgchar(map[pos])){
+				goto err;
+			}
+			++slen;
+			break;
+		case STATE_VERSION_LPAREN:
+			break;
+		default:
+			goto err;
+	}
 	}
 	return 0;
+
+err:
+	free_changelog(cl);
+	return -1;
 }
 
 changelog *lex_changelog(const char *fn,int *err){
@@ -86,30 +116,30 @@ changelog_getsource(const changelog *cl){
 
 const char *
 changelog_getversion(const changelog *cl){
-	return cl->entries ? cl->entries->version : NULL;
+	return cl->version;
 }
 
 const char *
 changelog_getdist(const changelog *cl){
-	return cl->entries ? cl->entries->dist : NULL;
+	return cl->dist;
 }
 
 const char *
 changelog_geturg(const changelog *cl){
-	return cl->entries ? cl->entries->urg : NULL;
+	return cl->urg;
 }
 
 const char *
 changelog_getmaintainer(const changelog *cl){
-	return cl->entries ? cl->entries->maintainer : NULL;
+	return cl->maintainer;
 }
 
 const char *
 changelog_getdate(const changelog *cl){
-	return cl->entries ? cl->entries->date : NULL;
+	return cl->date;
 }
 
 const char *
 changelog_getchanges(const changelog *cl){
-	return cl->entries ? cl->entries->text : NULL;
+	return cl->text;
 }
