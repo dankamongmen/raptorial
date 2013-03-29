@@ -47,6 +47,7 @@ lex_changelog_map(changelog *cl,const char *map,size_t len){
 		STATE_DISTDELIM,
 		STATE_URGENCY,
 		STATE_URGDELIM,
+		STATE_CHANGES,
 	} state = STATE_RESET;
 	const char *source,*version,*dist,*urg;
 	size_t pos,slen,vlen,dlen,ulen;
@@ -156,10 +157,14 @@ lex_changelog_map(changelog *cl,const char *map,size_t len){
 				if((cl->urg = strndup(urg,ulen)) == NULL){
 					goto err;
 				}
-				state = STATE_RESET; // FIXME
+				state = STATE_CHANGES;
 				break;
 			}
 			++ulen;
+			break;
+		case STATE_CHANGES:
+			if(map[pos] == '\n'){
+			}
 			break;
 		default:
 			goto err;
