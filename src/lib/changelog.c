@@ -104,18 +104,12 @@ lex_changelog_map(const char *map,size_t len){
 				vlen = 0;
 				break;
 			}
-			// Horrible special case on the error path; we must check
-			// for emacs crap at the bottom of the file. See
-			// http://people.debian.org/~jaldhar/make_package4.html
-			// Used last time I checked in at least junit :/
-			if(strcmp(cl->source,"Local") == 0 && len - pos >= strlen("variables:")){
-				if(memcmp(&map[pos],"variables:",strlen("variables:")) == 0){
-					free_changelog(cl);
-					return head;
-				}
-			}
-			fprintf(stderr,"Expected '(', got %.*s\n",(int)(len - pos),map + pos);
-			goto err;
+			// To match the behavior of dpkg-parsechangelog(1), we
+			// have to just abort when we hit an invalid line in
+			// this state. This behavior is pretty broad; see
+			// dpkg-parsechangelog(1) output for e.g. junit and gzip.
+			free_changelog(cl);
+			return head;
 			break;
 		case STATE_VERSION:
 			if(map[pos] == ')'){
