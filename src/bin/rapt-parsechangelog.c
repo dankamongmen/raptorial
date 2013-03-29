@@ -41,7 +41,7 @@ int main(int argc,char **argv){
 				fprintf(stderr,"Set changelog twice! Exiting\n");
 				usage(argv[0],EXIT_FAILURE);
 			}
-			clog = argv[optind];
+			clog = optarg;
 			break;
 		case 'h':
 			usage(argv[0],EXIT_SUCCESS);
