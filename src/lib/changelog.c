@@ -39,7 +39,6 @@ static changelog *
 lex_changelog_map(const char *map,size_t len){
 	enum {
 		STATE_RESET,
-		STATE_COMMENT,
 		STATE_SOURCE,
 		STATE_VERSION_LPAREN,
 		STATE_VERSION,
@@ -83,11 +82,6 @@ lex_changelog_map(const char *map,size_t len){
 			slen = 0;
 			// intentional fallthrough
 		case STATE_SOURCE:
-			// mime-support has an example of comments
-			if(map[pos] == '#'){
-				state = STATE_COMMENT;
-				break;
-			}
 			if(isspace(map[pos])){
 				if((cl->source = strndup(source,slen)) == NULL){
 					goto err;
@@ -96,17 +90,14 @@ lex_changelog_map(const char *map,size_t len){
 				break;
 			}
 			if(!isdebpkgchar(map[pos])){
-				fprintf(stderr,"Expected package, got %.*s\n",(int)(len - pos),map + pos);
-				goto err;
+				// To match the behavior of dpkg-parsechangelog(1), we
+				// have to just abort when we hit an invalid line in
+				// this state. This case is active in e.g. mime-support
+				// and tex-common.
+				free_changelog(cl);
+				return head;
 			}
 			++slen;
-			break;
-		case STATE_COMMENT:
-			if(map[pos] == '\n'){
-				state = STATE_SOURCE;
-				changes = &map[pos];
-				source = &map[pos];
-			}
 			break;
 		case STATE_VERSION_LPAREN:
 			if(isspace(map[pos])){
@@ -134,8 +125,14 @@ lex_changelog_map(const char *map,size_t len){
 				break;
 			}
 			if(!isdebverchar(map[pos])){
-				fprintf(stderr,"Expected version, got %.*s\n",(int)(len - pos),map + pos);
-				goto err;
+				// Done to match dpkg-parsechangelog(1) behavior :/.
+				// See apache's changelog for an active instance.
+				if(map[pos] == '_'){
+					fprintf(stderr,"Warning: invalid version character '%c'\n",map[pos]);
+				}else{
+					fprintf(stderr,"Expected version, got %.*s\n",(int)(len - pos),map + pos);
+					goto err;
+				}
 			}
 			++vlen;
 			break;
@@ -149,14 +146,19 @@ lex_changelog_map(const char *map,size_t len){
 			// intentional fallthrough
 		case STATE_DIST: // There can be more than one! (e.g. "frozen unstable")
 			if(map[pos] == ';'){
-				if((cl->dist = strndup(dist,dlen)) == NULL){
-					goto err;
+				if(dlen){
+					if((cl->dist = strndup(dist,dlen)) == NULL){
+						goto err;
+					}
 				}
 				state = STATE_DISTDELIM;
-			}else if(map[pos] == '\n'){
-				// See dpkg's changelog for examples without semicolon (e.g. "ALPHA")
-				if((cl->dist = strndup(dist,dlen)) == NULL){
-					goto err;
+			}else if(map[pos] == '\n' || map[pos] == ':'){
+				// See binutils's changelog for examples with no text, just a colon
+				// see dpkg's changelog for token without semicolon (e.g. "ALPHA")
+				if(dlen){
+					if((cl->dist = strndup(dist,dlen)) == NULL){
+						goto err;
+					}
 				}
 				state = STATE_CHANGES;
 				break;
