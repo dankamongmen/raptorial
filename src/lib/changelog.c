@@ -45,13 +45,16 @@ lex_changelog_map(changelog *cl,const char *map,size_t len){
 		STATE_VERSION_RPAREN,
 		STATE_DIST,
 		STATE_DISTDELIM,
+		STATE_URGENCY,
+		STATE_URGDELIM,
 	} state = STATE_RESET;
-	const char *source,*version,*dist;
-	size_t pos,slen,vlen,dlen;
+	const char *source,*version,*dist,*urg;
+	size_t pos,slen,vlen,dlen,ulen;
 
 	source = NULL; slen = 0;
 	version = NULL; vlen = 0;
 	dist = NULL; dlen = 0;
+	urg = NULL; ulen = 0;
 
 	memset(cl,0,sizeof(*cl));
 	for(pos = 0 ; pos < len ; ++pos){
@@ -116,14 +119,47 @@ lex_changelog_map(changelog *cl,const char *map,size_t len){
 					goto err;
 				}
 				state = STATE_DISTDELIM;
+			}else if(!isdebdistchar(map[pos])){
+				goto err;
+			}else{
+				++dlen;
 				break;
 			}
-			if(!isdebdistchar(map[pos])){
+			// intentional fallthrough for space/';'
+		case STATE_DISTDELIM:
+			if(isspace(map[pos])){
+				break;
+			}
+			if(map[pos] != ';'){
 				goto err;
 			}
-			++dlen;
+			state = STATE_URGENCY;
 			break;
-		case STATE_DISTDELIM:
+		case STATE_URGENCY:
+			if(isspace(map[pos])){
+				break;
+			}
+			if(len - pos < strlen("urgency=")){
+				goto err;
+			}
+			if(memcmp(map + pos,"urgency=",strlen("urgency="))){
+				goto err;
+			}
+			pos += strlen("urgency");
+			state = STATE_URGDELIM;
+			urg = &map[pos + 1];
+			ulen = 0;
+			// intentional fallthrough
+		case STATE_URGDELIM:
+			if(isspace(map[pos])){
+				// check for validity FIXME
+				if((cl->urg = strndup(urg,ulen)) == NULL){
+					goto err;
+				}
+				state = STATE_RESET; // FIXME
+				break;
+			}
+			++ulen;
 			break;
 		default:
 			goto err;
@@ -151,7 +187,6 @@ changelog *lex_changelog(const char *fn,int *err){
 		return NULL;
 	}
 	if(lex_changelog_map(cl,map,len)){
-		free_changelog(cl);
 		close(fd);
 		return NULL;
 	}
