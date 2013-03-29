@@ -36,7 +36,7 @@ free_changelog(changelog *cl){
 }
 
 static changelog *
-lex_changelog_map(const char *map,size_t len){
+lex_changelog_map(const char *map,size_t len,changelog **cptr){
 	enum {
 		STATE_RESET,
 		STATE_SOURCE,
@@ -276,24 +276,33 @@ lex_changelog_map(const char *map,size_t len){
 	if(head == NULL){
 		fprintf(stderr,"Empty file\n");
 	}
-	return head;
+	return (*cptr = head);
 
 err:
-	free_changelog(head);
+	// Don't free the stack of changelog entries; return it
+	// through *cptr so callers can use it if they want.
 	free_changelog(cl);
-	return NULL;
+	return (*cptr = head); // head != cl here
 }
 
-changelog *lex_changelog(const char *fn,int *err){
-	changelog *cl;
+// Behavior of dpkg-parsechangelog(1) is to return all changelog
+// entries newer than one on which it blows up, rather than
+// erroring out. We allow the caller to decide.
+changelog *lex_changelog(const char *fn,int *err,changelog **cptr){
+	changelog *cl,*dontcare;
 	size_t len;
 	void *map;
 	int fd;
 
+	if(cptr){
+		*cptr = NULL;
+	}else{
+		cptr = &dontcare;
+	}
 	if((map = mapit(fn,&len,&fd,0,err)) == MAP_FAILED){
 		return NULL;
 	}
-	if((cl = lex_changelog_map(map,len)) == NULL){
+	if((cl = lex_changelog_map(map,len,cptr)) == NULL){
 		close(fd);
 		return NULL;
 	}

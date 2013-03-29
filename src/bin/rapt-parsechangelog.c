@@ -61,7 +61,7 @@ int main(int argc,char **argv){
                 { NULL, 0, NULL, 0 }
         };
 	const char *clog = NULL;
-	struct changelog *cl;
+	struct changelog *cl,*failed;
 	int c,err;
 	char *fmt;
 
@@ -93,10 +93,14 @@ int main(int argc,char **argv){
 	if(argv[optind]){
 		usage(argv[0],EXIT_FAILURE);
 	}
-	if((cl = lex_changelog(clog,&err)) == NULL){
-		fprintf(stderr,"Error lexing changelog \"%s\" (%s?)\n",
-				clog,strerror(errno));
-		return EXIT_FAILURE;
+	if((cl = lex_changelog(clog,&err,&failed)) == NULL){
+		if(!failed){
+			fprintf(stderr,"Error lexing changelog \"%s\" (%s?)\n",
+					clog,strerror(errno));
+			return EXIT_FAILURE;
+		}
+		fprintf(stderr,"Warning: couldn't lex all of %s\n",clog);
+		cl = failed;
 	}
 	if(printf("Source: %s\nVersion: %s\nDistribution: %s\nUrgency: %s\n"
 				"Maintainer: %s\nDate: %s\nChanges:\n%s\n",

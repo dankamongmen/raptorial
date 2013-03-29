@@ -178,8 +178,10 @@ pkgobj_dist(const struct pkgobj *);
 PUBLIC int
 debcmp(const char *,const char *);
 
+// In the case of an error, you can still get the lexed
+// stack of changelog entries through the value-result.
 PUBLIC struct changelog *
-lex_changelog(const char *,int *);
+lex_changelog(const char *,int *,struct changelog **);
 
 PUBLIC const char *
 changelog_getsource(const struct changelog *);
