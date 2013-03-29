@@ -89,6 +89,7 @@ lex_changelog_map(const char *map,size_t len){
 				break;
 			}
 			if(!isdebpkgchar(map[pos])){
+				fprintf(stderr,"Expected package\n");
 				goto err;
 			}
 			++slen;
@@ -114,6 +115,7 @@ lex_changelog_map(const char *map,size_t len){
 				break;
 			}
 			if(!isdebverchar(map[pos])){
+				fprintf(stderr,"Expected version\n");
 				goto err;
 			}
 			++vlen;
@@ -133,6 +135,7 @@ lex_changelog_map(const char *map,size_t len){
 				}
 				state = STATE_DISTDELIM;
 			}else if(!isdebdistchar(map[pos])){
+				fprintf(stderr,"Expected distribution, got %.*s\n",(int)(len - pos),map + pos);
 				goto err;
 			}else{
 				++dlen;
@@ -144,6 +147,7 @@ lex_changelog_map(const char *map,size_t len){
 				break;
 			}
 			if(map[pos] != ';'){
+				fprintf(stderr,"Expected ';'\n");
 				goto err;
 			}
 			state = STATE_URGENCY;
@@ -153,9 +157,11 @@ lex_changelog_map(const char *map,size_t len){
 				break;
 			}
 			if(len - pos < strlen("urgency=")){
+				fprintf(stderr,"Expected 'urgency='\n");
 				goto err;
 			}
 			if(memcmp(map + pos,"urgency=",strlen("urgency="))){
+				fprintf(stderr,"Expected 'urgency='\n");
 				goto err;
 			}
 			pos += strlen("urgency=");

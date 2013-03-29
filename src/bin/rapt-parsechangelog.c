@@ -21,6 +21,40 @@ usage(const char *name,int retcode){
 	exit(retcode);
 }
 
+// Match the output of dpkg-parsechangelogs exactly.
+static char *
+format_changes(const char *changes){
+	const char *cline = changes;
+	char *s = NULL,*tmp;
+	size_t len = 0;
+
+	while(*cline){
+		const char *nl;
+		size_t ll;
+
+		if((nl = strchr(cline,'\n')) == NULL){
+			nl = cline + strlen(cline);
+		}
+		ll = nl - cline + 1;
+		if((tmp = realloc(s,len + ll + 1)) == NULL){
+			free(s);
+			return NULL;
+		}
+		s = tmp;
+		s[len] = ' ';
+		memcpy(s + len + 1,cline,ll);
+		len += ll;
+		cline += ll;
+	}
+	if((tmp = realloc(s,len + 1)) == NULL){
+		free(s);
+		return NULL;
+	}
+	s = tmp;
+	s[len] = '\0';
+	return s;
+}
+
 int main(int argc,char **argv){
 	const struct option longopts[] = {
                 { "help", 0, NULL, 'h' },
@@ -29,6 +63,7 @@ int main(int argc,char **argv){
 	const char *clog = NULL;
 	struct changelog *cl;
 	int c,err;
+	char *fmt;
 
 	while((c = getopt_long(argc,argv,"hl:F:",longopts,&optind)) != -1){
 		switch(c){
@@ -71,8 +106,9 @@ int main(int argc,char **argv){
 				changelog_geturg(cl),
 				changelog_getmaintainer(cl),
 				changelog_getdate(cl),
-				changelog_getchanges(cl)) < 0){
+				(fmt = format_changes(changelog_getchanges(cl)))) < 0){
 		return EXIT_FAILURE;
 	}
+	free(fmt);
 	return EXIT_SUCCESS;
 }
