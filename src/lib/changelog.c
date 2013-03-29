@@ -242,6 +242,9 @@ lex_changelog_map(const char *map,size_t len){
 			goto err;
 	}
 	}
+	if(head == NULL){
+		fprintf(stderr,"Empty file\n");
+	}
 	return head;
 
 err:
