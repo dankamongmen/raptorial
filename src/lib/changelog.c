@@ -51,7 +51,7 @@ lex_changelog_map(const char *map,size_t len){
 		STATE_MAINT,
 		STATE_DATE,
 	} state = STATE_RESET;
-	const char *source,*version,*dist,*urg,*maint,*changes;
+	const char *source,*version,*dist,*urg,*maint,*changes,*endchange;
 	size_t pos,slen,vlen,dlen,ulen,mlen;
 	changelog *cl,**enq,*head;
 
@@ -60,7 +60,7 @@ lex_changelog_map(const char *map,size_t len){
 	dist = NULL; dlen = 0;
 	urg = NULL; ulen = 0;
 	maint = NULL; mlen = 0;
-	changes = NULL;
+	changes = NULL; endchange = NULL;
 
 	cl = NULL;
 	head = NULL;
@@ -176,6 +176,9 @@ lex_changelog_map(const char *map,size_t len){
 			break;
 		case STATE_CHANGES:
 			if(map[pos] == '\n'){
+				if(!endchange){
+					endchange = &map[pos]; // FIXME
+				}
 				if(len - pos >= 5){
 					if(memcmp(&map[pos + 1]," -- ",4) == 0){
 						state = STATE_MAINT;
@@ -206,13 +209,14 @@ lex_changelog_map(const char *map,size_t len){
 					if((cl->date = strndup(maint + mlen + 2,pos - (maint - map) - mlen - 2)) == NULL){
 						goto err;
 					}
-					if((cl->text = strndup(changes,(maint - 4 - map) - (changes - map))) == NULL){
+					if((cl->text = strndup(changes,endchange - changes)) == NULL){
 						goto err;
 					}
 					state = STATE_RESET;
 					*enq = cl;
 					enq = &cl->next;
 					cl = NULL;
+					endchange = NULL;
 				}
 			}
 			break;
