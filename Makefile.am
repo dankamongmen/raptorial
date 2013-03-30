@@ -19,7 +19,7 @@ dist_man_MANS = rapt-show-versions.1 \
 dist_doc_DATA=
 dist_doc_DATA+=README.md COPYING libraptorial.xhtml raptorial-file.xhtml \
 	rapt-show-versions.xhtml rapt-parsechangelog.xhtml \
-	libraptorial.pc.in
+	libraptorial.pc.in tests/Packages
 
 pkgconfigdir=${libdir}/pkgconfig
 nodist_pkgconfig_DATA=libraptorial.pc
