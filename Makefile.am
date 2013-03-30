@@ -1,6 +1,8 @@
 LANG=C
 LC_ALL=c
 
+DOCDIR=doc
+
 AM_CFLAGS=-O2 -Wall -W -Wshadow -Werror -Wextra -fvisibility=hidden \
 	  	$(PTHREAD_CFLAGS)
 AM_LDFLAGS=-Wl,-O2,--no-undefined-version,--enable-new-dtags,--as-needed,--warn-common
@@ -9,17 +11,14 @@ AM_CPPFLAGS=-I $(SRCDIR)/src/lib
 
 LIBS+=$(PTHREAD_LIBS) 
 
-dist_man_MANS = rapt-parsechangelog.1 \
-		rapt-show-versions.1 \
+dist_man_MANS = rapt-show-versions.1 \
 		raptorial-file.1 \
+		rapt-parsechangelog.1 \
 		libraptorial.3
 
-doc_DIR=doc
-doc_DATA=
-doc_DATA+=README.md
-
 dist_doc_DATA=
-dist_doc_DATA+=COPYING libraptorial.xhtml
+dist_doc_DATA+=README.md COPYING libraptorial.xhtml raptorial-file.xhtml \
+	       rapt-show-versions.xhtml #rapt-parsechangelog.xhtml
 
 pkgconfigdir=${libdir}/pkgconfig
 nodist_pkgconfig_DATA=libraptorial.pc
@@ -62,21 +61,24 @@ check: $(srcdir)/tests/Packages $(bin_PROGRAMS)
 		-e 's@#RAPTORIAL_REQUIRES#@${RAPTORAL_REQUIRES}@' \
 		< $< > $@
 
-%.1: $(doc_DIR)/man/man1/%.xml $(doc_DIR)/@PACKAGE_NAME@.ent
-	$(XSLTPROC) --path $(doc_DIR) -o $@ --nonet /usr/share/xml/docbook/stylesheet/docbook-xsl/manpages/docbook.xsl $<
+%.1: $(DOCDIR)/man/man1/%.xml $(DOCDIR)/@PACKAGE_NAME@.ent
+	$(XSLTPROC) --path $(DOCDIR) -o $@ --nonet /usr/share/xml/docbook/stylesheet/docbook-xsl/manpages/docbook.xsl $<
 
-%.3: $(doc_DIR)/man/man3/%.xml $(doc_DIR)/@PACKAGE_NAME@.ent
-	$(XSLTPROC) --path $(doc_DIR) -o $@ --nonet /usr/share/xml/docbook/stylesheet/docbook-xsl/manpages/docbook.xsl $<
+%.3: $(DOCDIR)/man/man3/%.xml $(DOCDIR)/@PACKAGE_NAME@.ent
+	$(XSLTPROC) --path $(DOCDIR) -o $@ --nonet /usr/share/xml/docbook/stylesheet/docbook-xsl/manpages/docbook.xsl $<
 
-%.xhtml: $(doc_DIR)/man/man3/%.xml $(doc_DIR)/@PACKAGE_NAME@.ent
-	$(XSLTPROC) --path $(doc_DIR) -o $@ --nonet /usr/share/xml/docbook/stylesheet/docbook-xsl/xhtml-1_1/docbook.xsl $<
+%.xhtml: $(DOCDIR)/man/man1/%.xml $(DOCDIR)/@PACKAGE_NAME@.ent
+	$(XSLTPROC) --path $(DOCDIR) -o $@ --nonet /usr/share/xml/docbook/stylesheet/docbook-xsl/xhtml-1_1/docbook.xsl $<
 
-$(doc_DIR)/@PACKAGE_NAME@.ent:
+%.xhtml: $(DOCDIR)/man/man3/%.xml $(DOCDIR)/@PACKAGE_NAME@.ent
+	$(XSLTPROC) --path $(DOCDIR) -o $@ --nonet /usr/share/xml/docbook/stylesheet/docbook-xsl/xhtml-1_1/docbook.xsl $<
+
+$(DOCDIR)/@PACKAGE_NAME@.ent:
 	@mkdir -p $(@D)
 	echo -e '<!ENTITY dhfirstname "Nick">\n<!ENTITY dhsurname "Black">\n<!ENTITY dhemail "nick.black@sprezzatech.com">\n<!ENTITY dhusername "&dhfirstname; &dhsurname;">\n<!ENTITY dhrelease "$(VERSION)">' > "$@"
 
 clean-local:
-	rm -rf $(MANS) $(doc_DIR)/@PACKAGE_NAME@.ent ${nodist_pkgconfig_DATA}
+	rm -rf $(MANS) $(DOCDIR)/@PACKAGE_NAME@.ent ${nodist_pkgconfig_DATA}
 
 uninstall-local:
-	rmdir "$(DESTDIR)$(docdir)"
+	rmdir "$(DESTDIR)$(DOCDIR)"
