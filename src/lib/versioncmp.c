@@ -1,16 +1,17 @@
+#include <stdio.h>
 #include <ctype.h>
 #include <raptorial.h>
 
 static inline int
 debccmp(int d1,int d2){
-	if(d1 == '~'){
+	if(d1 == '~' && d2 != '~'){
 		return -1;
-	}else if(d2 == '~'){
+	}else if(d2 == '~' && d1 != '~'){
 		return 1;
 	}else if(isalpha(d1) && !isalpha(d2)){
-		return -1;
-	}else if(isalpha(d2) && !isalpha(d1)){
 		return 1;
+	}else if(isalpha(d2) && !isalpha(d1)){
+		return -1;
 	}
 	return d1 - d2;
 }
@@ -35,8 +36,54 @@ debccmp(int d1,int d2){
        (which  can  only occur at the end of one or both version strings being
        compared) counts as zero.*/
 
+// Less than zero if d1 < d2 (d1 is earlier than d2; d2 is newer)
 int debcmp(const char *d1,const char *d2){
-	while(*d1 || *d2){
+	// First, compare the epochs, if they're present
+	const char *sd1 = d1,*sd2 = d2;
+
+	while(*d1){
+		if(!isdigit(*d1)){
+			break;
+		}
+		++d1;
+	}
+	while(*d2){
+		if(!isdigit(*d2)){
+			break;
+		}
+		++d2;
+	}
+	if(*d1 == ':'){ // first has an epoch
+		if(*d2 != ':'){	// only d1 does; d1 is newer
+			return 1;
+		} // both do
+		if(d1 - sd1 > d2 - sd2){ // d1 is newer
+			return 1;
+		}else if(d1 - sd1 < d2 - sd2){ // d2 is newer
+			return -1;
+		} // both had epochs of the same length
+		while(sd1 != d1){
+			if(*sd1 < *sd2){
+				return -1;
+			}else if(*sd2 < *sd1){
+				return 1;
+			}
+			++sd1;
+			++sd2;
+		} // epochs were the same; advance past epoch
+		++sd1;
+		++sd2;
+		++d1;
+		++d2;
+	}else if(*d2 == ':'){ // only second does; d2 is newer
+		return -1;
+	}else{ // else neither had an epoch; reset the pointers
+		d1 = sd1;
+		d2 = sd2;
+	}
+
+	// extract the purely non-digit part
+	while(!isdigit(*d1) && !isdigit(*d2)){
 		int r = debccmp(*d1,*d2);
 
 		if(r){
@@ -44,6 +91,19 @@ int debcmp(const char *d1,const char *d2){
 		}
 		++d1;
 		++d2;
+	}
+	sd1 = d1;
+	sd2 = d2;
+	while(isdigit(*d1)){
+		++d1;
+	}
+	while(isdigit(*d2)){
+		++d2;
+	}
+	if(d1 - sd1 > d2 - sd2){
+		return 1;
+	}else if(d1 - sd1 < d2 - sd2){
+		return -1;
 	}
 	return 0;
 }
