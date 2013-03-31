@@ -745,8 +745,11 @@ PUBLIC const struct pkgobj *
 pkgcache_find_installed(const pkgobj *mpo){
 	const pkgobj *po;
 
+	if(mpo->version == NULL){
+		return NULL;
+	}
 	for(po = mpo->dfanext ; po ; po = po->dfanext){
-		if(po->pl->uri && po->version){
+		if(po->version && debcmp(po->version,mpo->version) == 0){
 			return po;
 		}
 	}
