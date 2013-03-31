@@ -180,8 +180,8 @@ debcmp(const char *,const char *);
 
 // In the case of an error, you can still get the lexed
 // stack of changelog entries through the value-result.
-PUBLIC struct changelog *
-lex_changelog(const char *,int *,struct changelog **);
+PUBLIC const struct changelog *
+lex_changelog(const char *,int *,const struct changelog **);
 
 PUBLIC const char *
 changelog_getsource(const struct changelog *);
@@ -203,6 +203,9 @@ changelog_getdate(const struct changelog *);
 
 PUBLIC const char *
 changelog_getchanges(const struct changelog *);
+
+PUBLIC const struct changelog *
+changelog_getnext(const struct changelog *);
 
 #ifdef __cplusplus
 }

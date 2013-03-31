@@ -35,8 +35,8 @@ free_changelog(changelog *cl){
 	}
 }
 
-static changelog *
-lex_changelog_map(const char *map,size_t len,changelog **cptr){
+static const changelog *
+lex_changelog_map(const char *map,size_t len,const changelog **cptr){
 	enum {
 		STATE_RESET,
 		STATE_SOURCE,
@@ -288,8 +288,9 @@ err:
 // Behavior of dpkg-parsechangelog(1) is to return all changelog
 // entries newer than one on which it blows up, rather than
 // erroring out. We allow the caller to decide.
-changelog *lex_changelog(const char *fn,int *err,changelog **cptr){
-	changelog *cl,*dontcare;
+const changelog *lex_changelog(const char *fn,int *err,const changelog **cptr){
+	const changelog *dontcare;
+	const changelog *cl;
 	size_t len;
 	void *map;
 	int fd;
@@ -343,4 +344,9 @@ changelog_getdate(const changelog *cl){
 const char *
 changelog_getchanges(const changelog *cl){
 	return cl->text;
+}
+
+const changelog *
+changelog_getnext(const changelog *cl){
+	return cl->next;
 }

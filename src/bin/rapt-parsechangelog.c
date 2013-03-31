@@ -16,7 +16,7 @@ usage(const char *name,int retcode){
 	fprintf(fp,"usage: rapt-parsechangelog [ options ]\n");
 	fprintf(fp,"options:\n");
 	fprintf(fp,"\t-lchangelog: changelog to parse (default: %s)\n",raptorial_def_changelog());
-	fprintf(fp,"\t-Fchangelogfmt: changelog format (default: debian)\n");
+	fprintf(fp,"\t--all: print all entries\n");
 	fprintf(fp,"\t-h/--help: this output\n");
 	exit(retcode);
 }
@@ -58,18 +58,22 @@ format_changes(const char *changes){
 int main(int argc,char **argv){
 	const struct option longopts[] = {
                 { "help", 0, NULL, 'h' },
+		{ "all", 0, NULL, 'a' },
                 { NULL, 0, NULL, 0 }
         };
 	const char *clog = NULL;
-	struct changelog *cl,*failed;
-	int c,err;
-	char *fmt;
+	const struct changelog *cl,*failed,*last;
+	int c,err,all;
 
-	while((c = getopt_long(argc,argv,"hl:F:",longopts,&optind)) != -1){
+	all = 0;
+	while((c = getopt_long(argc,argv,"hl:",longopts,&optind)) != -1){
 		switch(c){
-		case 'F':
-			fprintf(stderr,"Sorry, '-%c' is not yet implemented\n",c);
-			exit(EXIT_FAILURE);
+		case 'a':
+			if(all){
+				fprintf(stderr,"Set --all twice! Exiting\n");
+				usage(argv[0],EXIT_FAILURE);
+			}
+			all = 1;
 			break;
 		case 'l':
 			if(clog){
@@ -102,17 +106,27 @@ int main(int argc,char **argv){
 		fprintf(stderr,"Warning: couldn't lex all of %s\n",clog);
 		cl = failed;
 	}
-	if(printf("Source: %s\nVersion: %s\nDistribution: %s\nUrgency: %s\n"
-				"Maintainer: %s\nDate: %s\nChanges:\n%s\n",
-				changelog_getsource(cl),
-				changelog_getversion(cl),
-				changelog_getdist(cl),
-				changelog_geturg(cl),
-				changelog_getmaintainer(cl),
-				changelog_getdate(cl),
-				(fmt = format_changes(changelog_getchanges(cl)))) < 0){
-		return EXIT_FAILURE;
+	if(all){
+		last = NULL;
+	}else{
+		last = changelog_getnext(cl);
 	}
-	free(fmt);
+	while(cl != last){
+		char *fmt;
+
+		if(printf("Source: %s\nVersion: %s\nDistribution: %s\nUrgency: %s\n"
+					"Maintainer: %s\nDate: %s\nChanges:\n%s\n",
+					changelog_getsource(cl),
+					changelog_getversion(cl),
+					changelog_getdist(cl),
+					changelog_geturg(cl),
+					changelog_getmaintainer(cl),
+					changelog_getdate(cl),
+					(fmt = format_changes(changelog_getchanges(cl)))) < 0){
+			return EXIT_FAILURE;
+		}
+		free(fmt);
+		cl = changelog_getnext(cl);
+	}
 	return EXIT_SUCCESS;
 }
