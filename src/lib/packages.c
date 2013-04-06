@@ -396,54 +396,6 @@ struct dirparse {
 	pthread_mutex_t lock;
 };
 
-// len is the true length, less than or equal to the mapped length.
-static int
-lex_map(pkglist *pl,const void *mem,size_t len,int *err,int statusfile,
-						struct dfa **dfa){
-	struct pkgparse pp = {
-		.statusfile = statusfile,
-		.dfa = dfa,
-		.mem = mem,
-		.len = len,
-		.offset = 0,
-		.sharedpcache = pl,
-		.csize = 1024 * 1024,
-	};
-	blossom_ctl bctl = {
-		.flags = 0,
-		.tids = 1,
-	};
-	blossom_state bs;
-	int r;
-
-	if( (r = pthread_mutex_init(&pp.lock,NULL)) ){
-		*err = r;
-		return -1;
-	}
-	if(blossom_per_pe(&bctl,&bs,NULL,lex_chunks,&pp)){
-		*err = errno;
-		pthread_mutex_destroy(&pp.lock);
-		return -1;
-	}
-	if(blossom_join_all(&bs)){
-		*err = errno;
-		blossom_free_state(&bs);
-		pthread_mutex_destroy(&pp.lock);
-		return -1;
-	}
-	if(blossom_validate_joinrets(&bs)){
-		blossom_free_state(&bs);
-		pthread_mutex_destroy(&pp.lock);
-		return -1;
-	}
-	blossom_free_state(&bs);
-	if((r = pthread_mutex_destroy(&pp.lock))){
-		*err = r;
-		return -1;
-	}
-	return 0;
-}
-
 static inline pkglist *
 create_pkglist(const void *mem,size_t len,int *err,int statusfile,struct dfa **dfa){
 	pkglist *pl;
@@ -451,8 +403,19 @@ create_pkglist(const void *mem,size_t len,int *err,int statusfile,struct dfa **d
 	if((pl = malloc(sizeof(*pl))) == NULL){
 		*err = errno;
 	}else{
+		struct pkgparse pp = {
+			.statusfile = statusfile,
+			.dfa = dfa,
+			.mem = mem,
+			.len = len,
+			.offset = 0,
+			.sharedpcache = pl,
+			.csize = 1024 * 1024,
+		};
+
 		memset(pl,0,sizeof(*pl));
-		if(lex_map(pl,mem,len,err,statusfile,dfa)){
+		if(lex_chunks(&pp) == NULL){
+			// FIXME set *err
 			free(pl);
 			return NULL;
 		}
