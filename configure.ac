@@ -1,5 +1,5 @@
 AC_PREREQ([2.61])
-AC_INIT([raptorial], [0.3.1], [sprezzos-dev@sprezzatech.com], [raptorial], [https://www.sprezzatech.com/wiki/index.php/Raptorial])
+AC_INIT([raptorial], [0.3.2], [sprezzos-dev@sprezzatech.com], [raptorial], [https://www.sprezzatech.com/wiki/index.php/Raptorial])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_HEADERS([src/lib/config.h:config.in])
 # FIXME no love with -Werror under automake 1.11; needs 1.13...
@@ -34,7 +34,7 @@ AX_CHECK_DOCBOOK_XSLT
 
 AC_PROG_LIBTOOL
 
-AC_CONFIG_MACRO_DIR([m4])
+#AC_CONFIG_MACRO_DIR([m4])
 
 SRCDIR=${srcdir}
 
