@@ -15,7 +15,6 @@ libraptorial.3
 libraptorial.la
 libtool
 ltmain.sh
-m4
 missing
 rapt-parsechangelog
 rapt-parsechangelog.1

@@ -614,16 +614,14 @@ lex_dir(void *vdp){
 	struct dirparse *dp = vdp;
 	struct dirent dent,*pdent;
 	struct dfa **dfap;
+	int r;
        
 	dfap = dp->dfa ? &dp->dfa : NULL;
-	while(readdir_r(dp->dir,&dent,&pdent) == 0){
+	while( (r = readdir_r(dp->dir,&dent,&pdent)) == 0 && pdent){
 		const char *suffixes[] = { "Sources", "Packages", NULL },**suffix;
 		const char *distdelim,*dist,*uridelim;
 		pkglist *pl;
 
-		if(pdent == NULL){
-			return dp;
-		}
 		if(dent.d_type != DT_REG && dent.d_type != DT_LNK){
 			continue; // FIXME maybe don't skip DT_UNKNOWN?
 		}
@@ -663,7 +661,10 @@ lex_dir(void *vdp){
 			}
 		}
 	}
-	return NULL;
+	if(r){
+		return NULL;
+	}
+	return dp;
 }
 
 // len is the true length, less than or equal to the mapped length.
