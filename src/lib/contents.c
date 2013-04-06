@@ -338,6 +338,7 @@ lex_dir(void *vdp){
 	}
 	finish_workmonad(NULL,dp);
 	if(r){
+		free(infbuf);
 		return NULL;
 	}
 	do{
