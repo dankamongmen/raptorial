@@ -46,16 +46,6 @@ struct changelog;
 PUBLIC struct pkglist *
 lex_packages_file(const char *,int *,struct dfa **);
 
-// Returns a new package list object after lexing the provided package list.
-// On error, NULL is returned, and the error value will be written through; it
-// is otherwise untouched. The package list will be broken into chunks, and
-// lexed in parallel.
-//
-// If dfa is NULL, it will be unused. If it points to a NULL, we will build it.
-// If it points to a non-null, we will filter our list based on it.
-PUBLIC struct pkglist *
-lex_packages_mem(const void *,size_t,int *,struct dfa **);
-
 // Returns a new package cache object after lexing any package lists found in
 // the specified directory. The lists will be processed in parallel.
 //

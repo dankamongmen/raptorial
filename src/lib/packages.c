@@ -463,20 +463,6 @@ lex_packages_file(const char *path,int *err,struct dfa **dfa){
 	return lex_packages_file_internal(path,err,0,dfa);
 }
 
-PUBLIC pkglist *
-lex_packages_mem(const void *mem,size_t len,int *err,struct dfa **dfa){
-	pkglist *pl;
-
-	if(mem == NULL || len == 0){
-		*err = EINVAL;
-		return NULL;
-	}
-	if((pl = create_pkglist(mem,len,err,0,dfa)) == NULL){
-		return NULL;
-	}
-	return pl;
-}
-
 PUBLIC void
 free_package_list(pkglist *pl){
 	if(pl){

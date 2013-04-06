@@ -172,6 +172,7 @@ lex_content_map_nextshot(workmonad *wm,struct dirparse *dp,
 	}
 	if(z == Z_STREAM_END){
 		if(inflateEnd(&wm->zstr) != Z_OK){
+			finish_workmonad(wm,dp);
 			return -1;
 		}
 		finish_workmonad(wm,dp);
@@ -289,7 +290,7 @@ lex_workqueue(struct dirparse *dp,void *infbuf,size_t buflen){
 			++dp->holdup_sem;
 		}
 		pthread_mutex_unlock(&dp->lock);
-		if(wm == NULL){ // FIXME see notes about early exit
+		if(wm == NULL){
 			return 0;
 		}
 		if(lex_content_map_nextshot(wm,dp,infbuf,buflen)){
