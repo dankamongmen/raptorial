@@ -65,12 +65,12 @@ Run ./configure && make && make install, seasoned to taste.
 
 * The variations of regular expression admitted by the different tools are
   collapsed to a single, reduced definition. A search pattern is composed of:
-    * Legal characters for the range of the search (usually alphanums + '_'),
-    * Kleene closure ('*'),
-    * Union ('|'),
-    * Left bound ('^')
-    * Right bound ('$')
-    * Nested pairs of parentheses ('(' + ')')
+	* Legal characters for the range of the search (usually alphanums + '_'),
+	* Kleene closure ('*'),
+	* Union ('|'),
+	* Left bound ('^')
+	* Right bound ('$')
+	* Nested pairs of parentheses ('(' + ')')
 
 ## rapt-show-versions(1) vs apt-show-versions(1)
 
