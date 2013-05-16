@@ -137,7 +137,7 @@ lex_changelog_map(const char *map,size_t len,const changelog **cptr){
 			++vlen;
 			break;
 		case STATE_VERSION_RPAREN:
-			if(isspace(map[pos])){
+			if(map[pos] != '\n' && isspace(map[pos])){
 				break;
 			}
 			state = STATE_DIST;
@@ -155,6 +155,7 @@ lex_changelog_map(const char *map,size_t len,const changelog **cptr){
 			}else if(map[pos] == '\n' || map[pos] == ':'){
 				// See binutils's changelog for examples with no text, just a colon
 				// see dpkg's changelog for token without semicolon (e.g. "ALPHA")
+				// See file's changelog for no token
 				if(dlen){
 					if((cl->dist = strndup(dist,dlen)) == NULL){
 						goto err;

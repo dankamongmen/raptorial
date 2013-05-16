@@ -1,5 +1,5 @@
 AC_PREREQ([2.61])
-AC_INIT([raptorial], [0.3.2], [sprezzos-dev@sprezzatech.com], [raptorial], [https://www.sprezzatech.com/wiki/index.php/Raptorial])
+AC_INIT([raptorial], [0.3.3], [sprezzos-dev@sprezzatech.com], [raptorial], [https://www.sprezzatech.com/wiki/index.php/Raptorial])
 AC_CONFIG_AUX_DIR([.])
 AC_CONFIG_HEADERS([src/lib/config.h:config.in])
 # FIXME no love with -Werror under automake 1.11; needs 1.13...
