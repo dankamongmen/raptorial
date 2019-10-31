@@ -1,6 +1,8 @@
-RAPTORIAL
-=========
-by Nick Black (nick.black@sprezzatech.com)
+# RAPTORIAL
+
+by Nick Black (dankamongmen@gmail.com)
+
+[![Build Status](https://drone.dsscaw.com:4443/api/badges/dankamongmen/raptorial/status.svg)](https://drone.dsscaw.com:4443/dankamongmen/raptorial)
 
 ![image](doc/raptorial.jpg)
 
@@ -38,7 +40,7 @@ I might possibly add:
 * raptitude. An ncurses-based package manager, similar in spirit to (but not
 	a drop-in replacement for) aptitude.
 
-# Requirements
+## Requirements
 
 Required components ought be detected or explicitly not detected by the
 Autotools configure script. You'll need:
@@ -52,16 +54,16 @@ Autotools configure script. You'll need:
 Raptorial ought build on any platform capable of running libblossom, which
 (right now) means just about any POSIX platform.
 
-# Building
+## Building
 
 If you're using a git checkout, run 'autoreconf -fis'. There's no need to do
 this for a release tarball. This will require the GNU Autotools.
 
 Run ./configure && make && make install, seasoned to taste.
 
-# UI-visible divergences from preexisting APT tools
+## UI-visible divergences from preexisting APT tools
 
-## Regular expressions / "pattern searches"
+### Regular expressions / "pattern searches"
 
 * The variations of regular expression admitted by the different tools are
   collapsed to a single, reduced definition. A search pattern is composed of:
@@ -72,7 +74,7 @@ Run ./configure && make && make install, seasoned to taste.
 	* Right bound ('$')
 	* Nested pairs of parentheses ('(' + ')')
 
-## rapt-show-versions(1) vs apt-show-versions(1)
+### rapt-show-versions(1) vs apt-show-versions(1)
 
 * neither requires nor makes use of the apt-show-versions(1) cache.
   The -i/--initialize option is neither required nor supported.
@@ -86,7 +88,7 @@ Run ./configure && make && make install, seasoned to taste.
 These options might be added for backwards compatibility, but there are no
 plans to do so currently.
 
-## raptorial-file(1) vs apt-file(1)
+### raptorial-file(1) vs apt-file(1)
 
 * neither requires nor makes use of the apt-file(1) cache.
   The -c/--cache option is neither required nor supported.
@@ -101,14 +103,14 @@ plans to do so currently.
   text against the search terms for any presence. to require a full match,
   use '^term$'.
 
-## rapt-parsechangelog (1) vs dpkg-parsechangelog
+### rapt-parsechangelog (1) vs dpkg-parsechangelog
 
 * the -L and -F options (alternative parsers) are not currently supported,
   and probably won't be.
 
-# Design
+## Design
 
-## Threading
+### Threading
 
 Significant effort has gone into making Raptorial perform well on a wide
 variety of machines. Even on a single core, Raptorial's use of threads can
@@ -117,7 +119,7 @@ disk requests being scheduled earlier. The libblossom library is used to
 automatically scale to various architectures. Generally, Raptorial will not
 have more threads ready to run than there are processors in the system.
 
-## List lexing
+### List lexing
 
 If we need data from both the status file and the package lists, we lex the
 status file first, to provide a set of anchors with which we can associate the
@@ -129,7 +131,7 @@ because libblossom doesn't allow hierarchal blossoms. See [bug #698][b698]).
 
 [b698]: https://www.sprezzatech.com/bugs/show_bug.cgi?id=698
 
-## Multiple matching
+### Multiple matching
 
 Rather than use a standard string search algorithm, we make use of the
 Aho-Corasick automaton. This allows us to match all patterns against a text at
@@ -137,14 +139,14 @@ the same time. It is intended that this be replaced by the "advanced" variant
 of the algorithm, so that we can benefit from skips following partial prefix
 matches.
 
-## Backwards skipping
+### Backwards skipping
 
 When we are matching against a single string, there's no benefit from the
 somewhat elaborate Aho-Corasick construction. In the case where we are matching
 a single string, and that string contains at least two different characters, we
 instead use Boyer-Moore (*not* Boyer-Moore-Harspool), to benefit from skips.
 
-## Filtered list lexing
+### Filtered list lexing
 
 Whenever we lex a list (status or package), we can accept a DFA to walk whilst
 lexing. In this case, we do not make an entry unless there's already one in the
@@ -152,7 +154,7 @@ DFA. This not only saves us allocations and copies, but more importantly it
 reduces the amount to search later, since uninteresting elements aren't
 present.
 
-## Pattern searches
+### Pattern searches
 
 Recall that regular languages are equivalent to discrete finite automata.
 
@@ -167,17 +169,17 @@ numeric ranges and match-all-glyphs ('.'), we use only characters which cannot
 show up in any of our search ranges, and thus needn't introduce escaping.
 
 
-# Similar projects
+## Similar projects
 
-## APT2
+### APT2
 * http://wiki.debian.org/Apt2
 * Started work years ago, doesn't appear to be going anywhere
 
-## libept
+### libept
 * http://web.mornfall.net/libept.html
 * Used by debtags, packagesearch, aptitude, synaptic, and goplay
 * Uses libapt-pkg and libxapian
 
-## libapt-front
+### libapt-front
 * http://libapt-front.alioth.debian.org/
 * Superseded by libept
