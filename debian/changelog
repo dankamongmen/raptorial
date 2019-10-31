@@ -2,6 +2,8 @@ raptorial (0.3.4-1) unstable; urgency=medium
 
   * Packaged for Debian, new upstream
   * Add pkg-config to build-deps
+  * Debian compat level 10
+  * Remove redundant build-deps autotools-dev, dh_autoreconf
 
  -- Nick Black <dankamongmen@gmail.com>  Thu, 31 Oct 2019 16:29:40 -0400
 
