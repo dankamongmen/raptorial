@@ -3,10 +3,12 @@ pipeline:
     image: library/debian:unstable
     commands: 
       - apt-get update
-      - apt-get -y remove man-db # ees so slow, updating zee manpage database :/
       - apt-get -y dist-upgrade
-      - apt-get -y install devscripts git-buildpackage
-      - mk-build-deps --install -t'apt-get -y'
+      - apt-get -y install devscripts software-properties-common
+      - apt-add-repository 'deb https://www.dsscaw.com/repos/apt/debian unstable main'
+      - apt-key add debian/9EA957D484A4266A.asc
+      - apt-get update
+      - apt-get install libblossom-dev
       - autoreconf -fis
       - ./configure
       - make -j8
