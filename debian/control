@@ -1,0 +1,52 @@
+Source: raptorial
+Section: admin
+Priority: optional
+Maintainer: Nick Black <dankamongmen@gmail.com>
+Build-Depends: autotools-dev,
+	autoconf-archive,
+	cdbs (>= 0.4.93~),
+	debhelper (>= 12),
+	dh-autoreconf,
+	libblossom-dev (>= 1.3.0),
+	xsltproc,
+	libz-dev | zlib1g-dev (>= 1.2.7)
+Standards-Version: 3.9.4
+Homepage: https://github.com/dankamongmen/raptorial
+
+Package: libraptorial-dev
+Section: libdevel
+Architecture: any
+Pre-Depends: ${misc:Pre-Depends}
+Multi-Arch: same
+Depends: ${misc:Depends},
+	${shlibs:Depends}
+Description: High-performance APT interface -- development
+ Raptorial is a high-performance interface to the APT database.
+ .
+ These are the files necessary for development with libraptorial.
+
+Package: libraptorial0
+Section: libs
+Multi-Arch: same
+Pre-Depends: ${misc:Pre-Depends}
+Architecture: any
+Depends: ${shlibs:Depends},
+	${misc:Depends}
+Description: High-performance APT interface
+ Raptorial is a high-performance interface to the APT database.
+
+Package: raptorial
+Section: admin
+Architecture: any
+Depends: ${shlibs:Depends},
+	${misc:Depends}
+Recommends: apt-file
+Description: High-performance APT tools
+ Raptorial is a high-performance interface to the APT and dpkg databases.
+ These are the command-line tools built from the libraptorial core. They
+ include:
+ .
+ rapt-show-versions, an apt-show-versions clone
+ raptorial-file, an apt-file clone
+ rapt-parsechangelog, a dpkg-parsechangelog clone
+

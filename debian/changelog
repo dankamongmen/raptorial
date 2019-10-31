@@ -1,0 +1,87 @@
+raptorial (0.3.4-1) unstable; urgency=medium
+
+  * Packaged for Debian, new upstream
+
+ -- Nick Black <dankamongmen@gmail.com>  Thu, 31 Oct 2019 16:29:40 -0400
+
+raptorial (0.3.3-SprezzOS1) unstable; urgency=low
+
+  * New upstream
+
+ -- Nick Black <nick.black@sprezzatech.com>  Wed, 15 May 2013 20:39:31 -0400
+
+raptorial (0.3.2-SprezzOS2) unstable; urgency=low
+
+  * Add recommendation of apt-file
+  * List rapt-parsechangelog in description
+  * Add build-dep on dh-autoreconf, autoconf-archive
+
+ -- Nick Black <nick.black@sprezzatech.com>  Tue, 30 Apr 2013 01:05:49 -0400
+
+raptorial (0.3.2-SprezzOS1) unstable; urgency=low
+
+  * Bugfix release
+
+ -- Nick Black <nick.black@sprezzatech.com>  Thu, 04 Apr 2013 02:08:14 -0400
+
+raptorial (0.3.1-SprezzOS2) unstable; urgency=low
+
+  * Recommend apt-file while it's necessary to download Content files
+
+ -- Nick Black <nick.black@sprezzatech.com>  Wed, 03 Apr 2013 00:01:59 -0400
+
+raptorial (0.3.1-SprezzOS1) unstable; urgency=low
+
+  * New upstream
+
+ -- Nick Black <nick.black@sprezzatech.com>  Sat, 30 Mar 2013 12:49:55 -0400
+
+raptorial (0.3.0-SprezzOS1) unstable; urgency=low
+
+  * Added rapt-parsechangelog
+
+ -- Nick Black <nick.black@sprezzatech.com>  Fri, 29 Mar 2013 13:01:50 -0400
+
+raptorial (0.2.1-SprezzOS1) unstable; urgency=low
+
+  * Performance improvements in raptorial-file
+  * Implemented 'i' and 'c' options for raptorial-file.
+
+ -- Nick Black <nick.black@sprezzatech.com>  Mon, 25 Mar 2013 03:45:42 -0400
+
+raptorial (0.2.0-SprezzOS1) unstable; urgency=low
+
+  * New upstream. Adds raptorial-file.
+
+ -- Nick Black <nick.black@sprezzatech.com>  Mon, 25 Mar 2013 00:54:42 -0400
+
+raptorial (0.1.5-SprezzOS1) unstable; urgency=low
+
+  * New upstream. Bug fixes and performance improvements.
+
+ -- Nick Black <nick.black@sprezzatech.com>  Wed, 20 Mar 2013 07:23:03 -0400
+
+raptorial (0.1.4-SprezzOS1) unstable; urgency=low
+
+  * New upstream
+  * Require blossom >= 1.2.2
+
+ -- Nick Black <nick.black@sprezzatech.com>  Tue, 19 Mar 2013 18:01:45 -0400
+
+raptorial (0.1.3-SprezzOS3) unstable; urgency=low
+
+  * Rebuild to catch dependency on libblossom0
+
+ -- Nick Black <nick.black@sprezzatech.com>  Sat, 16 Mar 2013 07:06:32 -0400
+
+raptorial (0.1.3-SprezzOS1) unstable; urgency=low
+
+  * Parallelized status file against package lists
+
+ -- Nick Black <nick.black@sprezzatech.com>  Sat, 16 Mar 2013 03:40:03 -0400
+
+raptorial (0.1.2-SprezzOS1) unstable; urgency=low
+
+  * Initial release
+
+ -- Nick Black <nick.black@sprezzatech.com>  Thu, 14 Mar 2013 17:39:11 -0400

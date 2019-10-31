@@ -8,7 +8,7 @@ pipeline:
       - apt-add-repository 'deb https://www.dsscaw.com/repos/apt/debian unstable main'
       - apt-key add debian/9EA957D484A4266A.asc
       - apt-get update
-      - apt-get install libblossom-dev
+      - mk-build-deps --install -t'apt-get -y'
       - autoreconf -fis
       - ./configure
       - make -j8
