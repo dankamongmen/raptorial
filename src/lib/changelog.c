@@ -170,7 +170,7 @@ lex_changelog_map(const char *map,size_t len,const changelog **cptr){
 				++dlen;
 				break;
 			}
-			// intentional fallthrough for space/';'
+      __attribute__ ((fallthrough)); // intentional fallthrough for space/';'
 		case STATE_DISTDELIM:
 			if(isspace(map[pos])){
 				break;
