@@ -1,6 +1,7 @@
 raptorial (0.3.4-1) unstable; urgency=medium
 
   * Packaged for Debian, new upstream
+  * Add pkg-config to build-deps
 
  -- Nick Black <dankamongmen@gmail.com>  Thu, 31 Oct 2019 16:29:40 -0400
 
