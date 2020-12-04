@@ -10,10 +10,10 @@ pipeline:
       - apt-key add debian/9EA957D484A4266A.asc
       - apt-get update
       - mk-build-deps --install -t'apt-get -y'
-      - autoreconf -fis
-      - ./configure
-      - make -j8
-      - make check
+      - mkdir build
+      - cd build
+      - cmake ..
+      - make
 ---
 kind: signature
 hmac: e5fb1c2810ada1b39a5d149c20c7c90fc05b5f9823870cddd0f44032b079441e

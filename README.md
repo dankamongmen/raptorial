@@ -45,21 +45,17 @@ I might possibly add:
 Required components ought be detected or explicitly not detected by the
 Autotools configure script. You'll need:
 
-* A C compiler
+* A C compiler plus CMake
 * POSIX threads
 * Libblossom (https://github.com/dankamongmen/libblossom)
 * zlib (http://www.zlib.net/)
-* GNU Autotools (only if building from a git checkout)
 
 Raptorial ought build on any platform capable of running libblossom, which
 (right now) means just about any POSIX platform.
 
 ## Building
 
-If you're using a git checkout, run 'autoreconf -fis'. There's no need to do
-this for a release tarball. This will require the GNU Autotools.
-
-Run ./configure && make && make install, seasoned to taste.
+Run `cmake && make && make install`.
 
 ## UI-visible divergences from preexisting APT tools
 

@@ -11,15 +11,15 @@ static void
 usage(const char *name,int retcode){
 	FILE *fp = (retcode == EXIT_SUCCESS) ? stdout : stderr;
 
-	fprintf(fp,"raptorial-file v%s by nick black <dank@qemfd.net>\n",PACKAGE_VERSION);
-	fprintf(fp," invoked as %s\n",name);
-	fprintf(fp,"\n");
-	fprintf(fp,"usage: raptorial-file [ options ] patterns\n");
-	fprintf(fp,"options:\n");
-	fprintf(fp,"\t-c/--cache cachedir: content files directory\n");
-	fprintf(fp,"\t\t(%s by default)\n",raptorial_def_content_dir());
-	fprintf(fp,"\t-i/--ignore-case: case-insensitive matching\n");
-	fprintf(fp,"\t-h/--help: this output\n");
+	fprintf(fp, "raptorial-file v%s by nick black <dank@qemfd.net>\n", PACKAGE_VERSION);
+	fprintf(fp, " invoked as %s\n", name);
+	fprintf(fp, "\n");
+	fprintf(fp, "usage: raptorial-file [ options ] patterns\n");
+	fprintf(fp, "options:\n");
+	fprintf(fp, "\t-c/--cache cachedir: content files directory\n");
+	fprintf(fp, "\t\t(%s by default)\n", raptorial_def_content_dir());
+	fprintf(fp, "\t-i/--ignore-case: case-insensitive matching\n");
+	fprintf(fp, "\t-h/--help: this output\n");
 	exit(retcode);
 }
 
@@ -44,9 +44,9 @@ int main(int argc,char **argv){
 		{ "from-file", 1, NULL, 'f' },
 		{ "ignore-case", 0, NULL, 'i' },
 		{ "verbose", 0, NULL, 'v' },
-                { "help", 0, NULL, 'h' },
-                { NULL, 0, NULL, 0 }
-        };
+    { "help", 0, NULL, 'h' },
+    { NULL, 0, NULL, 0 }
+  };
 	const char *cdir = NULL;
 	int c,err,nocase = 0;
 	struct dfa *dfa;

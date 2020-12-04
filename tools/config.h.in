@@ -1,0 +1,14 @@
+// Populated by CMake, and installed to the host system
+#ifndef RAPTORIAL_CONFIG_HEADER
+#define RAPTORIAL_CONFIG_HEADER
+
+#define RAPTORIAL_VERSION_MAJOR "@raptorial_VERSION_MAJOR@"
+#define RAPTORIAL_VERSION_MINOR "@raptorial_VERSION_MINOR@"
+#define RAPTORIAL_VERSION_PATCH "@raptorial_VERSION_PATCH@"
+#define RAPTORIAL_VERSION_TWEAK "@raptorial_VERSION_TWEAK@"
+
+#define PACKAGE_VERSION RAPTORIAL_VERSION_MAJOR "." \
+                        RAPTORIAL_VERSION_MINOR "." \
+                        RAPTORIAL_VERSION_PATCH
+
+#endif
