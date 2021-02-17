@@ -41,10 +41,12 @@ target_link_libraries(libraptorial
 file(GLOB RAPTPARSECHANGELOG src/bin/rapt-parsechangelog.c)
 file(GLOB RAPTSHOWVERSIONSSRCS src/bin/rapt-show-versions.c)
 file(GLOB RAPTORIALFILESRCS src/bin/raptorial-file.c)
+file(GLOB TESTERFILESRCS src/tester/main.c)
 
 add_executable(rapt-show-versions ${RAPTSHOWVERSIONSSRCS})
 add_executable(rapt-parsechangelog ${RAPTPARSECHANGELOG})
 add_executable(raptorial-file ${RAPTORIALFILESRCS})
+add_executable(rapt-tester ${TESTERFILESRCS})
 
 target_include_directories(raptorial-file
   PRIVATE
@@ -78,6 +80,19 @@ target_include_directories(rapt-show-versions
     src/lib
 )
 target_link_libraries(rapt-show-versions
+  PRIVATE
+    ${BLOSSOM_LIBRARIES}
+    ${LIBZ_LIBRARIES}
+    libraptorial
+    Threads::Threads
+)
+
+target_include_directories(rapt-tester
+  PRIVATE
+    "${PROJECT_BINARY_DIR}"
+    src/lib
+)
+target_link_libraries(rapt-tester
   PRIVATE
     ${BLOSSOM_LIBRARIES}
     ${LIBZ_LIBRARIES}
