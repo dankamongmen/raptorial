@@ -9,6 +9,7 @@ set(CMAKE_C_VISIBILITY_PRESET hidden)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 
+include(CTest)
 include(GNUInstallDirs)
 include(CMakeDependentOption)
 include(FeatureSummary)
@@ -46,7 +47,9 @@ file(GLOB TESTERFILESRCS src/tester/main.c)
 add_executable(rapt-show-versions ${RAPTSHOWVERSIONSSRCS})
 add_executable(rapt-parsechangelog ${RAPTPARSECHANGELOG})
 add_executable(raptorial-file ${RAPTORIALFILESRCS})
+if(${BUILD_TESTING})
 add_executable(rapt-tester ${TESTERFILESRCS})
+endif()
 
 target_include_directories(raptorial-file
   PRIVATE
@@ -87,6 +90,7 @@ target_link_libraries(rapt-show-versions
     Threads::Threads
 )
 
+if(${BUILD_TESTING})
 target_include_directories(rapt-tester
   PRIVATE
     "${PROJECT_BINARY_DIR}"
@@ -99,3 +103,11 @@ target_link_libraries(rapt-tester
     libraptorial
     Threads::Threads
 )
+file(GLOB DEBDISTFILES CONFIGURE_DEPENDS /var/lib/apt/lists/*Packages)
+foreach(p ${DEBDISTFILES})
+add_test(
+  NAME rapt-tester-${p}
+  COMMAND rapt-tester ${p}
+)
+endforeach()
+endif()
