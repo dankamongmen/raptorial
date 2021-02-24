@@ -21,23 +21,34 @@ set_package_properties(Threads PROPERTIES TYPE REQUIRED)
 pkg_check_modules(BLOSSOM REQUIRED libblossom>=1.3.0)
 pkg_check_modules(LIBZ REQUIRED zlib>=1.2.11)
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+set(PKGCONFIG_DIR "${CMAKE_INSTALL_LIBDIR}/pkgconfig")
+else()
+set(PKGCONFIG_DIR "${CMAKE_INSTALL_PREFIX}/libdata/pkgconfig")
+endif()
+
 configure_file(tools/config.h.in config.h)
 
 file(GLOB LIBSRCS src/lib/*.c)
 
-add_library(libraptorial SHARED ${LIBSRCS})
-target_include_directories(libraptorial
+add_library(raptorial SHARED ${LIBSRCS})
+target_include_directories(raptorial
   PRIVATE
     "${PROJECT_BINARY_DIR}"
     src/lib
 )
-target_link_libraries(libraptorial
+target_link_libraries(raptorial
   PRIVATE
     ${BLOSSOM_LIBRARIES}
     ${LIBZ_LIBRARIES}
   PUBLIC
     Threads::Threads
 )
+
+configure_file(libraptorial.pc.in
+    ${CMAKE_CURRENT_BINARY_DIR}/libraptorial.pc
+    @ONLY
+  )
 
 file(GLOB RAPTPARSECHANGELOG src/bin/rapt-parsechangelog.c)
 file(GLOB RAPTSHOWVERSIONSSRCS src/bin/rapt-show-versions.c)
@@ -60,7 +71,7 @@ target_link_libraries(raptorial-file
   PRIVATE
     ${BLOSSOM_LIBRARIES}
     ${LIBZ_LIBRARIES}
-    libraptorial
+    raptorial
     Threads::Threads
 )
 
@@ -73,7 +84,7 @@ target_link_libraries(rapt-parsechangelog
   PRIVATE
     ${BLOSSOM_LIBRARIES}
     ${LIBZ_LIBRARIES}
-    libraptorial
+    raptorial
     Threads::Threads
 )
 
@@ -86,9 +97,14 @@ target_link_libraries(rapt-show-versions
   PRIVATE
     ${BLOSSOM_LIBRARIES}
     ${LIBZ_LIBRARIES}
-    libraptorial
+    raptorial
     Threads::Threads
 )
+
+install(FILES
+    ${CMAKE_CURRENT_BINARY_DIR}/libraptorial.pc
+    DESTINATION ${PKGCONFIG_DIR}
+  )
 
 if(${BUILD_TESTING})
 target_include_directories(rapt-tester
@@ -100,7 +116,7 @@ target_link_libraries(rapt-tester
   PRIVATE
     ${BLOSSOM_LIBRARIES}
     ${LIBZ_LIBRARIES}
-    libraptorial
+    raptorial
     Threads::Threads
 )
 file(GLOB DEBDISTFILES CONFIGURE_DEPENDS /var/lib/apt/lists/*Packages)
