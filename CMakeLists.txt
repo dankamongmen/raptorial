@@ -137,6 +137,10 @@ install(TARGETS raptorial
     NAMELINK_COMPONENT Development
 )
 
+install(TARGETS rapt-show-versions DESTINATION bin)
+install(TARGETS rapt-parsechangelog DESTINATION bin)
+install(TARGETS raptorial-file DESTINATION bin)
+
 if(${BUILD_TESTING})
 target_include_directories(rapt-tester
   PRIVATE
@@ -156,5 +160,6 @@ add_test(
   NAME rapt-tester-${p}
   COMMAND rapt-tester ${p}
 )
+install(TARGETS rapt-tester DESTINATION bin)
 endforeach()
 endif()
