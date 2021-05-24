@@ -160,6 +160,6 @@ add_test(
   NAME rapt-tester-${p}
   COMMAND rapt-tester ${p}
 )
-install(TARGETS rapt-tester DESTINATION bin)
 endforeach()
+install(TARGETS rapt-tester DESTINATION bin)
 endif()
