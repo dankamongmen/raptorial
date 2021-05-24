@@ -130,6 +130,13 @@ file(GLOB RAPTORIAL_HEADERS
 
 install(FILES ${RAPTORIAL_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
+install(TARGETS raptorial
+  LIBRARY
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    COMPONENT Libraries
+    NAMELINK_COMPONENT Development
+)
+
 if(${BUILD_TESTING})
 target_include_directories(rapt-tester
   PRIVATE
