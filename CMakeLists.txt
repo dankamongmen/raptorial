@@ -122,6 +122,14 @@ install(FILES
   DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Raptorial"
 )
 
+file(GLOB RAPTORIAL_HEADERS
+  CONFIGURE_DEPENDS
+  LIST_DIRECTORIES false
+  ${PROJECT_SOURCE_DIR}/src/lib/raptorial.h
+)
+
+install(FILES ${RAPTORIAL_HEADERS} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
 if(${BUILD_TESTING})
 target_include_directories(rapt-tester
   PRIVATE
