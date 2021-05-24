@@ -1,0 +1,9 @@
+@PACKAGE_INIT@
+set(Raptorial_DIR "@PACKAGE_SOME_INSTALL_DIR@")
+
+# Compute paths
+get_filename_component(Raptorial_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+set(Raptorial_INCLUDE_DIRS "@CONF_INCLUDE_DIRS@")
+set(Raptorial_LIBRARY_DIRS "@CONF_LIBRARY_DIRS@")
+
+set(Raptorial_LIBRARIES -lraptorial)

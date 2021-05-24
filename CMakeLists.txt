@@ -29,6 +29,21 @@ endif()
 
 configure_file(tools/config.h.in config.h)
 
+configure_file(libraptorial.pc.in
+  ${CMAKE_CURRENT_BINARY_DIR}/libraptorial.pc
+  @ONLY
+)
+
+configure_package_config_file(tools/RaptorialConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/RaptorialConfig.cmake
+  INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Raptorial"
+)
+
+write_basic_package_version_file(
+  ${CMAKE_CURRENT_BINARY_DIR}/RaptorialConfigVersion.cmake
+  COMPATIBILITY SameMajorVersion
+)
+
 file(GLOB LIBSRCS src/lib/*.c)
 
 add_library(raptorial SHARED ${LIBSRCS})
@@ -44,11 +59,6 @@ target_link_libraries(raptorial
   PUBLIC
     Threads::Threads
 )
-
-configure_file(libraptorial.pc.in
-    ${CMAKE_CURRENT_BINARY_DIR}/libraptorial.pc
-    @ONLY
-  )
 
 file(GLOB RAPTPARSECHANGELOG src/bin/rapt-parsechangelog.c)
 file(GLOB RAPTSHOWVERSIONSSRCS src/bin/rapt-show-versions.c)
@@ -102,9 +112,15 @@ target_link_libraries(rapt-show-versions
 )
 
 install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/libraptorial.pc
-    DESTINATION ${PKGCONFIG_DIR}
-  )
+  ${CMAKE_CURRENT_BINARY_DIR}/libraptorial.pc
+  DESTINATION ${PKGCONFIG_DIR}
+)
+
+install(FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/RaptorialConfig.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/RaptorialConfigVersion.cmake"
+  DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/Raptorial"
+)
 
 if(${BUILD_TESTING})
 target_include_directories(rapt-tester
